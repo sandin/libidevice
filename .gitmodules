@@ -1,0 +1,3 @@
+[submodule "libs/libnskeyedarchiver"]
+	path = libs/libnskeyedarchiver
+	url = git@github.com:sandin/libnskeyedarchiver.git
