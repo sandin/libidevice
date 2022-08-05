@@ -28,7 +28,8 @@ IService::Result InstrumentService::NewClient(idevice_t device, lockdownd_servic
   return ResultCode::kOk;
 }
 
-IService::Result InstrumentService::Start() {
+IService::Result InstrumentService::Connect(idevice_t device) {
+  device_ = device;
   int32_t err = 0;
   
   // with ssl
@@ -47,7 +48,8 @@ IService::Result InstrumentService::Start() {
   return ret;
 }
 
-IService::Result InstrumentService::Stop() {
+IService::Result InstrumentService::Disconnect() {
+  device_ = nullptr;
   if (client_ != nullptr) {
     service_client_free(client_);
     client_ = nullptr;

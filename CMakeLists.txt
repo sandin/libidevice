@@ -28,17 +28,26 @@ include_directories(${imobiledevice_INCLUDE_DIRS} ${plist_INCLUDE_DIRS})
 add_subdirectory("./libs/libnskeyedarchiver")
 include_directories("./libs/libnskeyedarchiver/include")
 
-# libidevice
-# library: nskeyedarchiver
+# library: libidevice
 include_directories("./include")
 set(HEADERS
+    include/idevice/idevice.h
     include/idevice/instrument.h
     include/idevice/iservice.h
-    include/idevice/idevice.h
+    include/idevice/dtxmessage.h
+    include/idevice/dtxmessageparser.h
+    include/idevice/dtxmessagetransmitter.h
+    include/idevice/dtxservice.h
+    include/idevice/dtxtransport.h
 )
 set(SOURCES
     src/instrument.cpp
     src/idevice.cpp
+    src/dtxmessage.cpp
+    src/dtxmessageparser.cpp
+    src/dtxmessagetransmitter.cpp
+    src/dtxservice.cpp
+    src/dtxtransport.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries(

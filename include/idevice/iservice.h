@@ -2,7 +2,8 @@
 #define IDEVICE_ISERVICE_H
 
 #include <cstdint>
-#include <cstdio>
+
+#include "idevice/idevice.h"
 
 namespace idevice {
 
@@ -13,8 +14,8 @@ class IService {
   
   virtual ~IService() {}
   
-  virtual Result Start() = 0;
-  virtual Result Stop() = 0;
+  virtual Result Connect(idevice_t device) = 0;
+  virtual Result Disconnect() = 0;
 };
 
 }  // namespace idevice

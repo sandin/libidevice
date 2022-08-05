@@ -8,6 +8,7 @@ namespace idevice {
 
 static const int32_t kResultOk = 0;
 static const int32_t kResultUnknownError = -256;
+
 static const char* kClientLabel = "IDevice";
 
 }  // namespace idevice
