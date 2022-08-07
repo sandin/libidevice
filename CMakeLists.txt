@@ -34,10 +34,12 @@ set(HEADERS
     include/idevice/idevice.h
     include/idevice/instrument.h
     include/idevice/iservice.h
+    include/idevice/dtxmessenger.h
     include/idevice/dtxmessage.h
     include/idevice/dtxmessageparser.h
     include/idevice/dtxmessagetransmitter.h
-    include/idevice/dtxservice.h
+    include/idevice/dtxconnection.h
+    include/idevice/dtxchannel.h
     include/idevice/dtxtransport.h
 )
 set(SOURCES
@@ -46,7 +48,8 @@ set(SOURCES
     src/dtxmessage.cpp
     src/dtxmessageparser.cpp
     src/dtxmessagetransmitter.cpp
-    src/dtxservice.cpp
+    src/dtxconnection.cpp
+    src/dtxchannel.cpp
     src/dtxtransport.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})

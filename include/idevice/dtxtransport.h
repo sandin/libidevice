@@ -10,21 +10,23 @@ namespace idevice {
 
 class DTXTransport {
  public:
-  DTXTransport() {
-    transport_ = new InstrumentService();
+  DTXTransport(idevice_t device) : device_(device) {
+    instrument_service_ = new InstrumentService();
   }
-
+  
   virtual ~DTXTransport() {
-    if (transport_ != nullptr) {
-      if (transport_->IsConnected()) {
-        transport_->Disconnect();
-      }
-      delete transport_;
+    if (instrument_service_ != nullptr) {
+      delete instrument_service_;
     }
   }
+  
+  bool Connect();
+  bool Disconnect();
+  bool IsConnected() const;
 
  private:
-  InstrumentService* transport_ = nullptr;
+  idevice_t device_ = nullptr;
+  InstrumentService* instrument_service_ = nullptr;
 
 }; // class DTXService
 
