@@ -23,6 +23,10 @@ class DTXTransport {
   bool Connect();
   bool Disconnect();
   bool IsConnected() const;
+  
+  bool Send(const char* data, uint32_t size, uint32_t* sent);
+  bool Receive(char* buffer, uint32_t size, uint32_t* received);
+  bool ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received);
 
  private:
   idevice_t device_ = nullptr;

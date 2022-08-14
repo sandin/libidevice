@@ -31,6 +31,8 @@ include_directories("./libs/libnskeyedarchiver/include")
 # library: libidevice
 include_directories("./include")
 set(HEADERS
+    include/idevice/blockingqueue.h
+    include/idevice/bytebuffer.h
     include/idevice/idevice.h
     include/idevice/instrument.h
     include/idevice/iservice.h
@@ -65,6 +67,8 @@ target_link_libraries(
 enable_testing()
 add_executable(
   ${PROJECT_NAME}_test
+  test/blockingqueue_test.cpp
+  test/bytebuffer_test.cpp
   test/idevice_test.cpp
   test/instrument_test.cpp
 )
