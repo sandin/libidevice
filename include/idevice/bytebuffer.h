@@ -7,6 +7,58 @@
 
 namespace idevice {
 
+#define IDEVICE_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
+
+class BufferMemory {
+ public:
+  BufferMemory() {
+  }
+  ~BufferMemory() {
+    if (buffer_) {
+      free(buffer_);
+    }
+  }
+  
+  char* Allocate(size_t req_size) {
+    if (capacity_ - size_ < req_size) {
+      if (!Reserve(size_ + req_size)) {
+        printf("Error: can not allocate memory, size=%zu\n", req_size);
+        return nullptr;
+      }
+    }
+    
+    char* ptr = buffer_ + size_;
+    size_ += req_size;
+    return ptr;
+  }
+  
+  char* GetPtr(size_t offset) {
+    return buffer_ + offset;
+  }
+  
+  size_t Size() const { return size_; }
+  void SetSize(size_t size) { size_ = size; }
+  
+ private:
+  bool Reserve(size_t capacity) {
+    size_t new_capacity = IDEVICE_MEM_ALIGN(capacity, 128);
+    if (buffer_ == nullptr) {
+      buffer_ = static_cast<char*>(malloc(new_capacity));
+    } else {
+      buffer_ = static_cast<char*>(realloc(buffer_, new_capacity));
+    }
+    if (buffer_ != nullptr) {
+      capacity_ = new_capacity;
+      return true;
+    }
+    return false;
+  }
+  
+  char* buffer_ = nullptr;
+  size_t size_ = 0;
+  size_t capacity_ = 0;
+};
+
 /**
  * Bytes buffer
  */
@@ -138,6 +190,7 @@ class ByteBuffer {
   }
 
  private:
+  uint32_t alignment_;
   std::unique_ptr<DataArray> buffer_;
 }; // class ByteBuffer
 

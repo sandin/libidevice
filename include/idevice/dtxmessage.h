@@ -2,6 +2,7 @@
 #define IDEVICE_DTXMESSAGE_H
 
 #include "idevice/idevice.h"
+#include <memory> // std::unique_ptr
 
 namespace idevice {
 
@@ -21,6 +22,8 @@ class DTXMessage {
  public:
   DTXMessage() {}
   virtual ~DTXMessage() {}
+  
+  static std::unique_ptr<DTXMessage> Create(const char* bytes, size_t size);
 }; // class DTXMessage
 
 }  // namespace idevice

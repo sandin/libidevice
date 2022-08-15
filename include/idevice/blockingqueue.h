@@ -5,6 +5,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <functional> // std::function
 
 namespace idevice {
 
@@ -42,7 +43,7 @@ class BlockingQueue {
   }
   
   /**
-   * take(copy) the first element from the head of the queue
+   * take(move) the first element from the head of the queue
    * if the queue is empty, it will wait blocking.
    * @return the first element
    */
@@ -51,9 +52,9 @@ class BlockingQueue {
     while (queue_.empty()) {
       not_empty_.wait(lock);
     }
-    T data = queue_.front();
+    T data = std::move(queue_.front()); // move
     queue_.pop();
-    return data;
+    return data; // move
   }
   
   /**
@@ -83,10 +84,17 @@ class BlockingQueue {
   /**
    * clear the queue
    */
-  void Clear() {
+  void Clear(std::function<void(T&)> destructor = nullptr) {
     std::unique_lock<std::mutex> lock(mutex_);
-    std::queue<T> empty;
-    std::swap(queue_, empty);
+    if (destructor) {
+      while (!queue_.empty()) {
+        destructor(queue_.front());
+        queue_.pop();
+      }
+    } else {
+      std::queue<T> empty;
+      std::swap(queue_, empty);
+    }
   }
   
 private:

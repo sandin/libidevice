@@ -9,17 +9,19 @@ namespace idevice {
 
 class DTXMessageParser {
  public:
-  DTXMessageParser() : parsing_buffer_(128) {}
-  virtual ~DTXMessageParser() {}
+  DTXMessageParser() {}
   
-  void ParseIncomingBytes(const char* buffer, size_t size);
+  virtual ~DTXMessageParser() {
+  }
+  
+  bool ParseIncomingBytes(const char* buffer, size_t size);
   
  private:
-  const char* ReadMessage(ByteReader& reader, size_t size, size_t* actual_size);
+  //const char* Read(ByteReader& reader, size_t size, size_t* actual_size);
+  bool ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size);
   
   bool eof_ = false;
-  ByteBuffer parsing_buffer_;
-  
+  BufferMemory parsing_buffer_;
 }; // class DTXMessageParser
 
 }  // namespace idevice

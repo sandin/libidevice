@@ -17,7 +17,7 @@ public:
     printf("~Task(), id=%d\n", id_);
   }
   
-  // copy ctor and assign
+  // copy ctor and assign (NOTE: I DO NOT WANT TO COPY ANYTHING!)
   Task(const Task& other) : id_(other.id_) {
     printf("Task(const Task& other), other.id=%d\n", other.id_);
   }
@@ -50,7 +50,7 @@ TEST(BlockingQueueTest, Push) {
   
   std::thread consumer_thread([&]() {
     printf("[consumer] take task\n");
-    Task got = queue.Take(); // `take` always return a copy
+    Task got = queue.Take();  // blocking, the first element is always **moved** out after invoke `Take()` func
     printf("[consumer] /take task, id=%d\n", got.Id());
     ASSERT_EQ(got.Id(), id);
   });
@@ -62,6 +62,33 @@ TEST(BlockingQueueTest, Push) {
     queue.Push(std::move(task));
     ASSERT_EQ(task.Id(), -1); // moved, the other has been reset
     printf("[producer] /push task, id=%d\n", task.Id());
+    //queue.Push(task);
+  });
+  
+  producer_thread.join();
+  consumer_thread.join();
+  ASSERT_TRUE(queue.Empty());
+}
+
+TEST(BlockingQueueTest, PushPtr) {
+  BlockingQueue<std::unique_ptr<Task>> queue;
+  ASSERT_TRUE(queue.Empty());
+  
+  int id = 1;
+  
+  std::thread consumer_thread([&]() {
+    printf("[consumer] take task\n");
+    std::unique_ptr<Task> got = queue.Take(); // the first element is always **moved** out after invoke `Take()` func
+    printf("[consumer] /take task, id=%d\n", got->Id());
+    ASSERT_EQ(got->Id(), id);
+  });
+  
+  std::thread producer_thread([&]() {
+    printf("[producer] create task, id=%d\n", id);
+    std::unique_ptr<Task> task = std::make_unique<Task>(id);
+    printf("[producer] push task, id=%d\n", task->Id());
+    queue.Push(std::move(task));
+    printf("[producer] /push task\n");
     //queue.Push(task);
   });
   
