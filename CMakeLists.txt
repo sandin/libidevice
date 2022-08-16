@@ -43,6 +43,7 @@ set(HEADERS
     include/idevice/dtxconnection.h
     include/idevice/dtxchannel.h
     include/idevice/dtxtransport.h
+    include/idevice/dtxprimitivearray.h
 )
 set(SOURCES
     src/instrument.cpp
@@ -53,6 +54,7 @@ set(SOURCES
     src/dtxconnection.cpp
     src/dtxchannel.cpp
     src/dtxtransport.cpp
+    src/dtxprimitivearray.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries(
@@ -71,6 +73,7 @@ add_executable(
   test/bytebuffer_test.cpp
   test/idevice_test.cpp
   test/instrument_test.cpp
+  test/dtxprimitivearray_test.cpp
 )
 target_link_libraries(
   ${PROJECT_NAME}_test

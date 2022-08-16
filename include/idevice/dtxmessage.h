@@ -20,10 +20,17 @@ struct DTXMessageHeader {
 
 class DTXMessage {
  public:
-  DTXMessage() {}
+  DTXMessage(uint32_t message_type) : message_type_(message_type) {}
   virtual ~DTXMessage() {}
   
   static std::unique_ptr<DTXMessage> Create(const char* bytes, size_t size);
+  
+  void SetPayloadBuffer(char* buffer, size_t size, bool should_copy);
+  
+ private:
+  char* payload_ = nullptr;
+  size_t payload_size_ = 0;
+  uint32_t message_type_ = 0;
 }; // class DTXMessage
 
 }  // namespace idevice

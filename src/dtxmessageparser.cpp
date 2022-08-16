@@ -65,6 +65,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     
     // whatever the case(B/C/D), we have at least one complete header, read(not consume) it
     const char* ptr = parsing_buffer_.GetPtr(consumed_size);
+    hexdump((void*)ptr, (int)kDTXMessageHeaderSize, 0); // FIXME: debug only
     DTXMessageHeader header;
     header.magic = *(uint32_t*)ptr; // assume little endian
     header.message_header_size = *(uint32_t*)(ptr + 4);
@@ -94,7 +95,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     }
     
     // Case C, we got at least one complete header and payload, parse(and consume) them
-    ParseMessageWithHeader(header, ptr + kDTXMessageHeaderSize, header.length);
+    ParseMessageWithHeader(header, ptr, header.length);
     consumed_size += message_size_with_header;
   } // end of while
   
