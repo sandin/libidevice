@@ -80,6 +80,7 @@ target_link_libraries(
   ${PROJECT_NAME}
   gtest_main
 )
+add_definitions(-DENABLE_NSKEYEDARCHIVE_TEST)
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_test)
 

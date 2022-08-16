@@ -5,6 +5,10 @@
 #include <gtest/gtest.h>
 
 #include "idevice/idevice.h"
+#ifdef ENABLE_NSKEYEDARCHIVE_TEST
+#include "nskeyedarchiver/nskeyedunarchiver.hpp"
+#include "nskeyedarchiver/kamap.hpp"
+#endif
 
 using namespace idevice;
 
@@ -36,7 +40,7 @@ using namespace idevice;
     }                                                                      \
     printf("filename=%s, buffer=%p, buffer_size=%zu\n", TEST_DIR filename, \
            static_cast<void*>(buffer), buffer_size);                       \
-    hexdump(buffer, buffer_size, 0);                                       \
+    idevice::hexdump(buffer, buffer_size, 0);                              \
   } while (0)
 
 TEST(DTXPrimitiveArrayTest, Ctor) {
@@ -67,7 +71,6 @@ TEST(DTXPrimitiveArrayTest, Ctor) {
   
   // 7: kInteger
   array.Append(DTXPrimitiveValue((uint64_t)64));
-  
   
   ASSERT_EQ(8, array.Size());
   
@@ -114,7 +117,6 @@ TEST(DTXPrimitiveArrayTest, Ctor) {
   ASSERT_EQ(64, value7.ToInteger());
 }
 
-
 TEST(DTXPrimitiveArrayTest, Deserialize) {
   constexpr int auxiliary_header_size = 0x10;
   
@@ -139,10 +141,113 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
   ASSERT_EQ(DTXPrimitiveValue::kBuffer, value0.GetType());
   ASSERT_EQ(auxiliary_length - auxiliary_header_size - 4 - 4 - 4, value0.Size());
   printf("=================================\n");
-  hexdump(value0.ToBuffer(), value0.Size(), 0);
+  idevice::hexdump(value0.ToBuffer(), value0.Size(), 0);
   
-  //nskeyedarchiver::KAValue obj = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(value0.ToBuffer(), (uint32_t)value0.Size());
-  //printf("%s\n", obj.ToJson().c_str());
+#ifdef ENABLE_NSKEYEDARCHIVE_TEST
+  nskeyedarchiver::KAValue obj = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(value0.ToBuffer(), (uint32_t)value0.Size());
+  printf("%s\n", obj.ToJson().c_str());
+  ASSERT_EQ(nskeyedarchiver::KAValue::DataType::Object, obj.GetDataType());
+  const nskeyedarchiver::KAMap& root = obj.AsObject<nskeyedarchiver::KAMap>();
+  ASSERT_STREQ(root.ClassName().c_str(), "NSMutableDictionary");
+  ASSERT_EQ(97, root.Size());
+  ASSERT_EQ(root.at("com.apple.dt.Instruments.inlineCapabilities").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.dt.Xcode.WatchProcessControl").ToInteger(), 3);
+  ASSERT_EQ(root.at("com.apple.dt.services.capabilities.vmtracking").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.ConditionInducer").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.LocationSimulation").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.activitytracetap").ToInteger(), 6);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.activitytracetap.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.activitytracetap.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.activitytracetap.windowed").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.assets").ToInteger(), 4);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.assets.response").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.config").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.multipleTimeTriggers").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.pmc").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.pmi").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coreprofilesessiontap.windowed").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.coresampling").ToInteger(), 10);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.device.applictionListing").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.device.xpccontrol").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo").ToInteger(), 113);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.app-life-cycle").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.condition-inducer").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.devicesymbolication").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.dyld-tracing").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.energytracing.location").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.gcd-perf").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.gpu-allocation").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.metal").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.recordOptions").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.scenekit-tracing").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.deviceinfo.systemversion").ToInteger(), 150500);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.filetransfer").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.filetransfer.debuginbox").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu.counters").ToInteger(), 4);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu.performancestate").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.gpu.shaderprofiler").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.coreanimation").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.coreanimation.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.coreanimation.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.opengl").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.opengl.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.graphics.opengl.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.httparchiverecording").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.mobilenotifications").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.networking").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.networking.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.networking.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.objectalloc").ToInteger(), 5);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.objectalloc.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.objectalloc.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.objectalloc.zombies").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.processcontrol").ToInteger(), 107);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.processcontrol.capability.memorylimits").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.processcontrol.capability.signal").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.processcontrol.feature.deviceio").ToInteger(), 103);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.processcontrolbydictionary").ToInteger(), 4);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.remoteleaks").ToInteger(), 8);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.remoteleaks.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.remoteleaks.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sampling").ToInteger(), 11);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sampling.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sampling.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.screenshot").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.storekit").ToInteger(), 4);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap").ToInteger(), 3);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap.processes").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap.system").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.sysmontap.windowed").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.ultraviolet.agent-pipe").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.ultraviolet.preview").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.ultraviolet.renderer").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.vmtracking").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.vmtracking.deferred").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.server.services.vmtracking.immediate").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.instruments.target.ios").ToInteger(), 150500);
+  ASSERT_EQ(root.at("com.apple.instruments.target.logical-cpus").ToInteger(), 6);
+  ASSERT_EQ(root.at("com.apple.instruments.target.mtb.denom").ToInteger(), 3);
+  ASSERT_EQ(root.at("com.apple.instruments.target.mtb.numer").ToInteger(), 125);
+  ASSERT_EQ(root.at("com.apple.instruments.target.physical-cpus").ToInteger(), 6);
+  ASSERT_EQ(root.at("com.apple.instruments.target.user-page-size").ToInteger(), 16384);
+  ASSERT_EQ(root.at("com.apple.private.DTXBlockCompression").ToInteger(), 2);
+  ASSERT_EQ(root.at("com.apple.private.DTXConnection").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.Energy").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.NetworkStatistics").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.SceneKit").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.SpriteKit").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.procinfo").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.resources").ToInteger(), 1);
+  ASSERT_EQ(root.at("com.apple.xcode.resource-control").ToInteger(), 1);
+#endif
 }
 
 TEST(DTXPrimitiveArrayTest, Serialize) {
