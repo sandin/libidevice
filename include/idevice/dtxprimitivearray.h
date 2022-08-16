@@ -5,6 +5,7 @@
 #include <cstdlib> // malloc, free
 #include <cstring> // memcpy
 #include <vector>
+#include <memory> // std::unique_ptr
 
 namespace idevice {
 
@@ -75,10 +76,11 @@ class DTXPrimitiveValue {
     return *this;
   }
   
-  explicit DTXPrimitiveValue(const char* str) : t_(kString) {
-    s_ = strlen(str) + 1;
+  explicit DTXPrimitiveValue(const char* str, size_t str_len) : t_(kString) {
+    s_ = str_len + 1;
     d_.b = static_cast<char*>(malloc(s_));
     strncpy(d_.b, str, s_);
+    d_.b[str_len] = '\0';
   }
   DTXPrimitiveValue(char* buffer, size_t size) : t_(kBuffer), s_(size) {
     d_.b = static_cast<char*>(malloc(size));
@@ -132,6 +134,9 @@ class DTXPrimitiveArray {
  public:
   DTXPrimitiveArray() {}
   ~DTXPrimitiveArray() {}
+  
+  static std::unique_ptr<DTXPrimitiveArray> Deserialize(const char* buffer, size_t size);
+  char* Serialize(size_t* size);
   
   void Append(DTXPrimitiveValue&& item) {
     items_.emplace_back(std::forward<DTXPrimitiveValue>(item));

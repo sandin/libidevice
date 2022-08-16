@@ -1,8 +1,10 @@
 #ifndef IDEVICE_DTXMESSAGE_H
 #define IDEVICE_DTXMESSAGE_H
 
-#include "idevice/idevice.h"
 #include <memory> // std::unique_ptr
+
+#include "idevice/idevice.h"
+#include "idevice/dtxprimitivearray.h"
 
 namespace idevice {
 
@@ -26,11 +28,13 @@ class DTXMessage {
   static std::unique_ptr<DTXMessage> Create(const char* bytes, size_t size);
   
   void SetPayloadBuffer(char* buffer, size_t size, bool should_copy);
+  void SetAuxiliary(std::unique_ptr<DTXPrimitiveArray>&& auxiliary) { auxiliary_ = std::move(auxiliary); }
   
  private:
   char* payload_ = nullptr;
   size_t payload_size_ = 0;
   uint32_t message_type_ = 0;
+  std::unique_ptr<DTXPrimitiveArray> auxiliary_;
 }; // class DTXMessage
 
 }  // namespace idevice
