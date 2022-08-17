@@ -134,10 +134,11 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
   ASSERT_EQ(171, payload_length);
   buffer += 0x10;
   
-  std::unique_ptr<DTXPrimitiveArray> array = DTXPrimitiveArray::Deserialize(buffer, auxiliary_length);
-  ASSERT_EQ(1, array->Size());
+  std::unique_ptr<DTXPrimitiveArray> auxiliaries = DTXPrimitiveArray::Deserialize(buffer, auxiliary_length);
+  buffer += auxiliary_length;
+  ASSERT_EQ(1, auxiliaries->Size());
   
-  DTXPrimitiveValue& value0 = array->At(0);
+  DTXPrimitiveValue& value0 = auxiliaries->At(0);
   ASSERT_EQ(DTXPrimitiveValue::kBuffer, value0.GetType());
   ASSERT_EQ(auxiliary_length - auxiliary_header_size - 4 - 4 - 4, value0.Size());
   printf("=================================\n");
@@ -247,7 +248,12 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
   ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.procinfo").ToInteger(), 1);
   ASSERT_EQ(root.at("com.apple.xcode.debug-gauge-data-providers.resources").ToInteger(), 1);
   ASSERT_EQ(root.at("com.apple.xcode.resource-control").ToInteger(), 1);
-#endif
+  
+  nskeyedarchiver::KAValue payload = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(buffer, payload_length);
+  printf("%s\n", payload.ToJson().c_str());
+  ASSERT_EQ(nskeyedarchiver::KAValue::DataType::Str, payload.GetDataType());
+  ASSERT_STREQ(payload.ToStr(), "_notifyOfPublishedCapabilities:");
+#endif // ENABLE_NSKEYEDARCHIVE_TEST
 }
 
 TEST(DTXPrimitiveArrayTest, Serialize) {

@@ -13,6 +13,22 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
     printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n", buffer, size);
     return nullptr;
   }
+  
+  // DTXPrimitiveArray Memory Layout:
+  // |-----------------------------------------------------------|
+  // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
+  // |-----------------------------------------------------------|
+  // |  magic                      |  length                     | // DTXPrimitiveArrayHeader, header of DTXPrimitiveArray
+  // |  item_type=1 | str_length   |  buffer(size=str_length)    | // e.g.: element of type kString(char*)
+  // |  ...                                                      |
+  // |  item_type=2 | buf_length   |  buffer(size=buf_length)    | // e.g.: element of type kBuffer(NSKeyedArchiver)
+  // |  ...                                                      |
+  // |  item_type=3 | 32bit int    |  ...                        | // e.g.: element of type kSignedInt32(int32_t)
+  // |  item_type=4 | 64bit int                   | ...          | // e.g.: element of type kSignedInt64(int64_t)
+  // |  item_type=5 | 32bit float  |  ...                        | // e.g.: element of type kFloat32(float)
+  // |  item_type=6 | 64bit float                 | ...          | // e.g.: element of type kFloat64(double)
+  // |  ...                                                      |
+  // |-----------------------------------------------------------|
   uint64_t magic = *(uint64_t*)(buffer);
   uint64_t length = *(uint64_t*)(buffer + 0x8);
   if (magic != kDTXPrimitiveArrayMagic || length + kDTXPrimitiveArrayHeaderSize != size) {

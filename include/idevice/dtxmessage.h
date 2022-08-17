@@ -25,7 +25,7 @@ class DTXMessage {
   DTXMessage(uint32_t message_type) : message_type_(message_type) {}
   virtual ~DTXMessage() {}
   
-  static std::unique_ptr<DTXMessage> Create(const char* bytes, size_t size);
+  static std::unique_ptr<DTXMessage> Deserialize(const char* bytes, size_t size);
   
   void SetPayloadBuffer(char* buffer, size_t size, bool should_copy);
   void SetAuxiliary(std::unique_ptr<DTXPrimitiveArray>&& auxiliary) { auxiliary_ = std::move(auxiliary); }

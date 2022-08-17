@@ -64,6 +64,14 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     }
     
     // whatever the case(B/C/D), we have at least one complete header, read(not consume) it
+    // DTXMessage Memory Layout:
+    // |-----------------------------------------------------------|
+    // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
+    // |-----------------------------------------------------------|
+    // | magic        | header_size  | fid   | fcnt | length       | // `DTXMessageHeader header`, header of DTXMessage
+    // | identifier   | conv_idx     | channel_code | expects_reply|
+    // | ...                                                       | // `DTXMessagePayload payload`, payload of DTXMessage
+    // |-----------------------------------------------------------|
     const char* ptr = parsing_buffer_.GetPtr(consumed_size);
     hexdump((void*)ptr, (int)kDTXMessageHeaderSize, 0); // FIXME: debug only
     DTXMessageHeader header;
