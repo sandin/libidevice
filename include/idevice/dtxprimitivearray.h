@@ -21,7 +21,8 @@ class DTXPrimitiveValue {
     kFloat32 = 5,      // float, size=4
     kFloat64 = 6,      // double, size=8
     kInteger = 9,      // uint64_t, size=8
-    kMaxType = 10
+    kEmptyKey = 10,    // empty key in dict, size=0
+    kMaxType = 11
   };
 
 #define MOVE_DTXPRIMITIVE_VALUE(other) \
@@ -29,6 +30,7 @@ class DTXPrimitiveValue {
   s_ = other.s_; \
   switch (other.t_) { \
     case kNull: \
+    case kEmptyKey: \
       break; \
     case kString: \
     case kBuffer: \
@@ -77,14 +79,18 @@ class DTXPrimitiveValue {
   }
   
   explicit DTXPrimitiveValue(const char* str, size_t str_len) : t_(kString) {
-    s_ = str_len + 1;
-    d_.b = static_cast<char*>(malloc(s_));
-    strncpy(d_.b, str, s_);
+    s_ = str_len;
+    d_.b = static_cast<char*>(malloc(str_len + 1));
+    strncpy(d_.b, str, str_len);
     d_.b[str_len] = '\0';
   }
-  DTXPrimitiveValue(char* buffer, size_t size) : t_(kBuffer), s_(size) {
-    d_.b = static_cast<char*>(malloc(size));
-    memcpy(d_.b, buffer, size);
+  DTXPrimitiveValue(char* buffer, size_t size, bool should_copy = true) : t_(kBuffer), s_(size) {
+    if (should_copy) {
+      d_.b = static_cast<char*>(malloc(size));
+      memcpy(d_.b, buffer, size);
+    } else {
+      d_.b = buffer;
+    }
   }
   explicit DTXPrimitiveValue(int32_t i32) : t_(kSignedInt32), s_(sizeof(int32_t)) {
     d_.i32 = i32;
@@ -102,6 +108,13 @@ class DTXPrimitiveValue {
     d_.u = u;
   }
   
+  static DTXPrimitiveValue CreateEmptyDictionaryKey() {
+    DTXPrimitiveValue value;
+    value.SetType(kEmptyKey);
+    value.SetSize(0);
+    return value;
+  }
+  
   char* ToStr() { return d_.b; }
   char* ToBuffer() { return d_.b; }
   int32_t ToSignedInt32() { return d_.i32; }
@@ -110,33 +123,43 @@ class DTXPrimitiveValue {
   double ToFloat64() { return d_.d; }
   uint64_t ToInteger() { return d_.u; }
   
+  const void* RawData() { return reinterpret_cast<const void*>(&d_.b); }
+  
   size_t Size() const { return s_; }
+  void SetSize(size_t s) { s_ = s; }
+  
   Type GetType() const { return t_; }
+  void SetType(Type t) { t_ = t; }
   
  private:
- union {
-   char* b;  // kString or kBuffer
-   int32_t i32;
-   int64_t i64;
-   float f;
-   double d;
-   uint64_t u;
- } d_;
- size_t s_ = 0;
- Type t_ = kNull;
+  union {
+    char* b;  // kString or kBuffer
+    int32_t i32;
+    int64_t i64;
+    float f;
+    double d;
+    uint64_t u;
+  } d_;
+  size_t s_ = 0;
+  Type t_ = kNull;
   
 #ifdef MOVE_DTXPRIMITIVE_VALUE
 #undef MOVE_DTXPRIMITIVE_VALUE
 #endif
 };  // class DTXPrimitiveValue
 
+/**
+ * DTXPrimitiveArray
+ */
 class DTXPrimitiveArray {
  public:
-  DTXPrimitiveArray() {}
+  DTXPrimitiveArray(bool as_dict = true) : as_dict_(as_dict) {}
   ~DTXPrimitiveArray() {}
   
   static std::unique_ptr<DTXPrimitiveArray> Deserialize(const char* buffer, size_t size);
-  char* Serialize(size_t* size);
+  
+  size_t SerializedLength() const;
+  bool SerializeTo(std::function<bool(const char*, size_t)> serializer);
   
   void Append(DTXPrimitiveValue&& item) {
     items_.emplace_back(std::forward<DTXPrimitiveValue>(item));
@@ -146,11 +169,34 @@ class DTXPrimitiveArray {
     return items_.at(index);
   }
   
+  DTXPrimitiveValue& operator[](size_t index) {
+    return items_[index];
+  }
+  
   size_t Size() const { return items_.size(); }
   
  private:
   std::vector<DTXPrimitiveValue> items_;
+  bool as_dict_ = false;
 };  // class DTXPrimitiveArray
+
+// Actually we didn't implement the DTXPrimitiveDictionary, but implement the DTXPrimitiveArray instead
+// and use it as the DTXPrimitiveDictionary, 'cause they both have very similar memory layouts.
+// for now all DTXPrimitiveDictionary we've seen only have empty keys, so we just ignore them.
+//
+// DTXPrimitiveDictionary Memory layout:
+// |-----------------------------------------|
+// | header | key | value | key | value | ...
+// |-----------------------------------------|
+//
+// DTXPrimitiveArray Memory layout:
+// |------------------------------|
+// | header | value | value | ...
+// |------------------------------|
+//
+// key/value:
+// |type|payload|
+using DTXPrimitiveDictionary = DTXPrimitiveArray;
 
 }  // namespace idevice
 

@@ -25,11 +25,11 @@ static inline void hexdump(void* addr, int len, int offset) {
       if (i != 0) printf("  %s\n", buff);
 
       // Output the offset.
-      printf("  %08x ", i + offset);
+      printf("  %08xh: ", i + offset);
     }
 
     // Now the hex code for the specific character.
-    printf(" %02x", pc[i]);
+    printf(" %02X", pc[i]);
 
     // And store a printable ASCII character for later.
     if ((pc[i] < 0x20) || (pc[i] > 0x7e)) {

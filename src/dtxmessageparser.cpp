@@ -7,7 +7,7 @@ using namespace idevice;
   printf("==============\n"); \
   printf("magic: %x\n", header.magic); \
   printf("message_header_size: %d\n", header.message_header_size); \
-  printf("fragment_id: %d\n", header.fragment_id); \
+  printf("fragment_index: %d\n", header.fragment_index); \
   printf("fragment_count: %d\n", header.fragment_count); \
   printf("length: %d\n", header.length); \
   printf("identifier: %d\n", header.identifier); \
@@ -15,10 +15,6 @@ using namespace idevice;
   printf("channel_code: %d\n", header.channel_code); \
   printf("expects_reply: %d\n", header.expects_reply); \
   printf("==============\n"); \
-
-
-static const uint32_t kDTXMessageHeaderMagic = 0x1F3D5B79;
-static const uint32_t kDTXMessageHeaderSize = sizeof(DTXMessageHeader);
 
 // run on worker thread
 bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
@@ -68,7 +64,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     // |-----------------------------------------------------------|
     // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
     // |-----------------------------------------------------------|
-    // | magic        | header_size  | fid   | fcnt | length       | // `DTXMessageHeader header`, header of DTXMessage
+    // | magic        | header_size  | fidx  | fcnt | length       | // `DTXMessageHeader header`, header of DTXMessage, size=0x20
     // | identifier   | conv_idx     | channel_code | expects_reply|
     // | ...                                                       | // `DTXMessagePayload payload`, payload of DTXMessage
     // |-----------------------------------------------------------|
@@ -77,7 +73,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     DTXMessageHeader header;
     header.magic = *(uint32_t*)ptr; // assume little endian
     header.message_header_size = *(uint32_t*)(ptr + 4);
-    header.fragment_id = *(uint16_t*)(ptr + 8);
+    header.fragment_index = *(uint16_t*)(ptr + 8);
     header.fragment_count = *(uint16_t*)(ptr + 10);
     header.length = *(uint32_t*)(ptr + 12);
     header.identifier = *(uint32_t*)(ptr + 16);
@@ -126,7 +122,10 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
 bool DTXMessageParser::ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size) {
   DUMP_DTX_MESSAGE_HEADER(header);
   
-  std::unique_ptr<DTXMessage> message = DTXMessage::Create(data, size);
+  std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(data, size);
+  message->SetIdentifier(header.identifier);
+  message->SetChannelCode(header.channel_code);
+  message->SetConversationIndex(header.conversation_index);
   
   if (header.fragment_count == 1) {
     // DTXMessage has only one fragment

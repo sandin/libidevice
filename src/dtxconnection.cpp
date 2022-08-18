@@ -1,5 +1,6 @@
 #include "idevice/dtxconnection.h"
 
+
 using namespace idevice;
 
 static const size_t kReceiveBufferSize = 16 * 1024;
@@ -20,6 +21,7 @@ static const uint32_t kReceiveTimeout = 1 * 1000;
 bool DTXConnection::Connect() {
   bool ret = transport_->Connect();
   if (ret) {
+    StartSendThread();
     StartParsingThread();
     StartReceiveThread();
   }
@@ -27,8 +29,11 @@ bool DTXConnection::Connect() {
 }
 
 bool DTXConnection::Disconnect() {
+  StopSendThread(false);
   StopReceiveThread(false);
   StopParsingThread(false);
+  
+  send_queue_.Clear();
   receive_queue_.Clear([](std::unique_ptr<Packet>& packet) { free(packet->buffer); });
   
   return transport_->Disconnect();
@@ -97,3 +102,70 @@ void DTXConnection::ParsingThread() {
   }
   printf("ParsingThread stop\n");
 }
+
+void DTXConnection::StartSendThread() {
+  DTXCONNECTION_START_THREAD(send_thread_, SendThread, send_thread_running_);
+}
+
+void DTXConnection::StopSendThread(bool await) {
+  DTXCONNECTION_STOP_THREAD(send_thread_, send_thread_running_, await);
+}
+
+void DTXConnection::SendThread() {
+  printf("SendThread start\n");
+  constexpr size_t send_buffer_size = 8 * 1024;
+  char* send_buffer = static_cast<char*>(malloc(send_buffer_size));
+  while (send_thread_running_.load(std::memory_order_acquire)) {
+    if (!IsConnected()) {
+      return;
+    }
+    
+    std::shared_ptr<DTXMessage> message = send_queue_.Take();
+    
+    BufferedDTXTransport buffered_transport(transport_, send_buffer, send_buffer_size);
+    bool ret = outgoing_transmitter_.TransmitMessage(message, 1, {0, 0} /* TODO */, [&](const char* buffer, size_t size) -> bool {
+      return buffered_transport.Send(buffer, size);
+    });
+  
+    /*
+    size_t buffer_size = 0;
+    const char* buffer = message->Serialize(&buffer_size);
+    uint32_t actual_size = 0;
+    bool ret = transport_->Send(buffer, buffer_size, &actual_size);
+    */
+    if (!ret) {
+      printf("Error: can not send outgoing message, diconnecting.\n");
+      Disconnect();
+      break;
+    }
+  }
+  free(send_buffer);
+  printf("SendThread stop\n");
+}
+
+std::shared_ptr<DTXChannel> DTXConnection::MakeChannelWithIdentifier(const std::string& channel_identifier) {
+  uint32_t channel_code = next_channel_code_.fetch_add(1);
+  std::unique_ptr<DTXChannel> channel = std::make_unique<DTXChannel>(this, channel_identifier, channel_code);
+  channels_by_code_.insert(std::make_pair(channel_code, std::move(channel)));
+  
+  std::shared_ptr<DTXMessage> message = DTXMessage::Create("_requestChannelWithCode:identifier");
+  message->AppendAuxiliary(DTXPrimitiveValue(static_cast<int32_t>(channel_code)));
+  message->AppendAuxiliary(nskeyedarchiver::KAValue(channel_identifier.c_str()));
+  
+  SendMessageAsync(message, [&](auto msg) {
+    printf("message reply handler\n");
+  });
+  
+  return channel;
+}
+
+bool DTXConnection::CannelChannel(std::shared_ptr<DTXChannel> channel) {
+  
+}
+
+// virtual override
+void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) {
+  send_queue_.Push(msg);
+  // TODO: store callback of message
+}
+

@@ -2,8 +2,9 @@
 #define IDEVICE_DTXCONNECTION_H
 
 #include <thread>
-#include <memory>
+#include <memory> // std::unique_ptr, std::shared_ptr
 #include <atomic>
+#include <unordered_map>
 
 #include "idevice/blockingqueue.h"
 #include "idevice/dtxtransport.h"
@@ -15,10 +16,10 @@
 
 namespace idevice {
 
-
-
 class DTXConnection : public DTXMessenger {
  public:
+  using ChannelIdentifier = uint32_t;
+  
   DTXConnection(DTXTransport* transport) : transport_(transport) {}
   virtual ~DTXConnection() {}
   
@@ -26,17 +27,21 @@ class DTXConnection : public DTXMessenger {
   bool Disconnect();
   bool IsConnected() const { return transport_->IsConnected(); }
   
-  DTXChannel* MakeChannelWithIdentifier(const std::string& channel_identifier);
-  bool CannelChannel(DTXChannel* channel);
+  std::shared_ptr<DTXChannel> MakeChannelWithIdentifier(const std::string& channel_identifier);
+  bool CannelChannel(std::shared_ptr<DTXChannel> channel);
 
   // virtual bool SendMessageSync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
-  // virtual bool SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
+  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
 
  private:
   struct Packet {
     char* buffer;
     size_t size;
   };
+  
+  void StartSendThread();
+  void SendThread();
+  void StopSendThread(bool await);
   
   void StartReceiveThread();
   void ReceiveThread();
@@ -46,14 +51,20 @@ class DTXConnection : public DTXMessenger {
   void ParsingThread();
   void StopParsingThread(bool await);
   
+  std::atomic_bool send_thread_running_ = ATOMIC_VAR_INIT(false);
+  std::unique_ptr<std::thread> send_thread_ = nullptr;  /// sender of outgoing messages
+  
   std::atomic_bool receive_thread_running_ = ATOMIC_VAR_INIT(false);
-  std::unique_ptr<std::thread> receive_thread_ = nullptr; ///< producer of packets
+  std::unique_ptr<std::thread> receive_thread_ = nullptr; ///< producer of incoming packets
   
   std::atomic_bool parsing_thread_running_ = ATOMIC_VAR_INIT(false);
-  std::unique_ptr<std::thread> parsing_thread_ = nullptr; ///< consumer of packets
+  std::unique_ptr<std::thread> parsing_thread_ = nullptr; ///< consumer of incoming packets
   
-  // TODO: send_queue_;
+  BlockingQueue<std::shared_ptr<DTXMessage>> send_queue_;
   BlockingQueue<std::unique_ptr<Packet>> receive_queue_;
+  
+  std::atomic<ChannelIdentifier> next_channel_code_ = ATOMIC_VAR_INIT(0);
+  std::unordered_map<ChannelIdentifier, std::shared_ptr<DTXChannel>> channels_by_code_;
   
   DTXTransport* transport_;
   DTXMessageParser incoming_parser_;

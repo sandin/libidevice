@@ -2,15 +2,19 @@
 
 #include <map>
 #include <cstdlib> // abs
+#include <vector>
 #include <gtest/gtest.h>
 
 #include "idevice/idevice.h"
+#include "idevice/bytebuffer.h"
 #ifdef ENABLE_NSKEYEDARCHIVE_TEST
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 #include "nskeyedarchiver/kamap.hpp"
 #endif
 
 using namespace idevice;
+
+constexpr int auxiliary_header_size = 0x10;
 
 #define TEST_DIR "../../test/data/"
 #define READ_CONTENT_FROM_FILE(filename)                                   \
@@ -40,8 +44,8 @@ using namespace idevice;
     }                                                                      \
     printf("filename=%s, buffer=%p, buffer_size=%zu\n", TEST_DIR filename, \
            static_cast<void*>(buffer), buffer_size);                       \
-    idevice::hexdump(buffer, buffer_size, 0);                              \
   } while (0)
+  //idevice::hexdump(buffer, buffer_size, 0);                              \
 
 TEST(DTXPrimitiveArrayTest, Ctor) {
   DTXPrimitiveArray array;
@@ -118,7 +122,6 @@ TEST(DTXPrimitiveArrayTest, Ctor) {
 }
 
 TEST(DTXPrimitiveArrayTest, Deserialize) {
-  constexpr int auxiliary_header_size = 0x10;
   
   char* buffer = nullptr;
   size_t buffer_size = 0;
@@ -135,6 +138,7 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
   buffer += 0x10;
   
   std::unique_ptr<DTXPrimitiveArray> auxiliaries = DTXPrimitiveArray::Deserialize(buffer, auxiliary_length);
+  ASSERT_TRUE(auxiliaries != nullptr);
   buffer += auxiliary_length;
   ASSERT_EQ(1, auxiliaries->Size());
   
@@ -257,4 +261,22 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
 }
 
 TEST(DTXPrimitiveArrayTest, Serialize) {
+  char* buffer = nullptr;
+  size_t buffer_size = 0;
+  READ_CONTENT_FROM_FILE("dtxmsg_notifyofpublishedcapabilities.bin");
+  buffer = buffer + auxiliary_header_size; // skip the header
+  
+  uint32_t auxiliary_length = 7667;
+  std::unique_ptr<DTXPrimitiveArray> auxiliaries = DTXPrimitiveArray::Deserialize(buffer, auxiliary_length);
+
+  ByteBuffer serialized(8192);
+  auxiliaries->SerializeTo([&](const char* data, size_t size) -> bool {
+    serialized.Append(data, size);
+    return true;
+  });
+  
+  ASSERT_EQ(serialized.Size(), auxiliary_length);
+  printf("=================================\n");
+  idevice::hexdump(serialized.GetBuffer(0), serialized.Size(), auxiliary_header_size);
+  // TODO: memcpy
 }

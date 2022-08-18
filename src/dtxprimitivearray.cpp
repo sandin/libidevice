@@ -4,13 +4,15 @@
 
 using namespace idevice;
 
-static const int kDTXPrimitiveArrayHeaderSize = 0x10;
-static const int kDTXPrimitiveArrayMagic = 0x1DF0; // TODO: 0x1f0?
+constexpr uint64_t kDTXPrimitiveArrayDefaultSize = 0x200;
+constexpr uint64_t kDTXPrimitiveArrayHeaderSize = 0x10;
+constexpr uint64_t kDTXPrimitiveArrayCapacityAlignment = kDTXPrimitiveArrayDefaultSize + kDTXPrimitiveArrayHeaderSize; // 0x210
+constexpr uint64_t kDTXPrimitiveArrayDefaultCapacity = kDTXPrimitiveArrayDefaultSize - kDTXPrimitiveArrayHeaderSize; // 0x1F0, F0 01 00 00 00 00 00 00
 
 // static
-std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* buffer, size_t size) {
-  if (!buffer || size < kDTXPrimitiveArrayHeaderSize) {
-    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n", buffer, size);
+std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* buffer, size_t buffer_size) {
+  if (!buffer || buffer_size < kDTXPrimitiveArrayHeaderSize) {
+    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n", buffer, buffer_size);
     return nullptr;
   }
   
@@ -18,7 +20,7 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
   // |-----------------------------------------------------------|
   // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
   // |-----------------------------------------------------------|
-  // |  magic                      |  length                     | // DTXPrimitiveArrayHeader, header of DTXPrimitiveArray
+  // |  capacity                   |  size                       | // DTXPrimitiveArrayHeader, header of DTXPrimitiveArray
   // |  item_type=1 | str_length   |  buffer(size=str_length)    | // e.g.: element of type kString(char*)
   // |  ...                                                      |
   // |  item_type=2 | buf_length   |  buffer(size=buf_length)    | // e.g.: element of type kBuffer(NSKeyedArchiver)
@@ -29,10 +31,10 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
   // |  item_type=6 | 64bit float                 | ...          | // e.g.: element of type kFloat64(double)
   // |  ...                                                      |
   // |-----------------------------------------------------------|
-  uint64_t magic = *(uint64_t*)(buffer);
-  uint64_t length = *(uint64_t*)(buffer + 0x8);
-  if (magic != kDTXPrimitiveArrayMagic || length + kDTXPrimitiveArrayHeaderSize != size) {
-    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n", buffer, size);
+  uint64_t capacity = *(uint64_t*)(buffer); // capacity represents how many bytes of DTXPrimitiveArray struct(include the size of the DTXPrimitiveArrayHeader)
+  uint64_t size = *(uint64_t*)(buffer + 0x8); // size represents how many bytes of items
+  if (size + kDTXPrimitiveArrayHeaderSize != buffer_size) {
+    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr(length=%llu).\n", buffer, buffer_size, size);
     return nullptr;
   }
   
@@ -40,7 +42,7 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
   
   char* ptr = const_cast<char*>(buffer);
   size_t offset = kDTXPrimitiveArrayHeaderSize;
-  while (offset < size) {
+  while (offset < buffer_size) {
     uint32_t type = *(uint32_t*)(ptr + offset);
     offset += sizeof(uint32_t);
     
@@ -95,8 +97,8 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
         array->Append(DTXPrimitiveValue(u));
         break;
       }
-      case 10: {
-        break; // dictionary key. for arrays, the keys are empty and we ignore them
+      case DTXPrimitiveValue::kEmptyKey: {
+        break; // empty dictionary key, the keys are empty and we ignore them
       }
       default:
         assert(false); // TODO
@@ -107,6 +109,71 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
   return array;
 }
 
-char* DTXPrimitiveArray::Serialize(size_t* size) {
-  return nullptr; // TODO
+size_t DTXPrimitiveArray::SerializedLength() const {
+  size_t length = 0;
+  for (const auto& item : items_) {
+    length += item.Size();
+  }
+  return length;
 }
+
+bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
+  // Serialize DTXPrimitiveArrayHeader
+#define DTXPRIMITIVEARRAY_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
+  size_t size = SerializedLength();
+  uint64_t capacity = DTXPRIMITIVEARRAY_MEM_ALIGN(size, kDTXPrimitiveArrayCapacityAlignment);
+  serializer(reinterpret_cast<const char*>(&capacity), sizeof(uint64_t));
+  serializer(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
+#undef DTXPRIMITIVEARRAY_MEM_ALIGN
+  
+  uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
+  // Serialize items
+  for (auto& item : items_) {
+    if (as_dict_) {
+      // insert an empty key for DTXPrimitiveDictionary
+      serializer(reinterpret_cast<const char*>(&empty_key_type), sizeof(uint32_t));
+    }
+    
+    uint32_t type = item.GetType();
+    serializer(reinterpret_cast<const char*>(&type), sizeof(uint32_t));
+    
+    switch (type) {
+      case DTXPrimitiveValue::kString: {
+        // length
+        uint32_t length = item.Size();
+        serializer(reinterpret_cast<const char*>(&length), sizeof(uint32_t));
+        // str
+        const char* ptr = item.ToStr();
+        serializer(ptr, length);
+        break;
+      }
+      case DTXPrimitiveValue::kBuffer: {
+        // length
+        uint32_t length = item.Size();
+        serializer(reinterpret_cast<const char*>(&length), sizeof(uint32_t));
+        // buffer
+        const char* ptr = item.ToBuffer();
+        serializer(ptr, length);
+        break;
+      }
+      case DTXPrimitiveValue::kSignedInt32:
+      case DTXPrimitiveValue::kSignedInt64:
+      case DTXPrimitiveValue::kFloat32:
+      case DTXPrimitiveValue::kFloat64:
+      case DTXPrimitiveValue::kInteger: {
+        serializer(reinterpret_cast<const char*>(item.RawData()), item.Size());
+        break;
+      }
+      case DTXPrimitiveValue::kEmptyKey: {
+        break; // empty dictionary key, the keys are empty and we ignore them
+      }
+      default:
+        assert(false); // TODO
+        break;
+    }
+    
+    
+  }
+  return true;
+}
+
