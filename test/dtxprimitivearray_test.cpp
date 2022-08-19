@@ -261,6 +261,92 @@ TEST(DTXPrimitiveArrayTest, Deserialize) {
 }
 
 TEST(DTXPrimitiveArrayTest, Serialize) {
+  DTXPrimitiveArray array(true /* as dict */);
+  
+  // 0: kNull
+  array.Append(DTXPrimitiveValue());
+  
+  // 1: kString
+  const char* str = "hello world";
+  array.Append(DTXPrimitiveValue(str, strlen(str)));
+               
+  // 2: kBuffer
+  char buffer[] = { 0x01, 0x02, 0x03, 0x04 };
+  array.Append(DTXPrimitiveValue(buffer, sizeof(buffer)));
+               
+  // 3: kSignedInt32
+  array.Append(DTXPrimitiveValue((int32_t)32));
+  
+  // 4: kSignedInt64
+  array.Append(DTXPrimitiveValue((int64_t)64));
+  
+  // 5: kFloat32
+  array.Append(DTXPrimitiveValue((float)3.2));
+  
+  // 6: kFloat64
+  array.Append(DTXPrimitiveValue((double)6.4));
+  
+  // 7: kInteger
+  array.Append(DTXPrimitiveValue((uint64_t)64));
+  
+  ASSERT_EQ(8, array.Size());
+
+  ByteBuffer serialized(8192);
+  array.SerializeTo([&](const char* data, size_t size) -> bool {
+    serialized.Append(data, size);
+    return true;
+  });
+  printf("=================================\n");
+  idevice::hexdump(serialized.GetBuffer(0), serialized.Size(), auxiliary_header_size);
+  
+  const unsigned char expect_data[] = {
+    0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // capacity=496
+    0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // capacity=47
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    // type=kEmptyKey, size=0
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x01, 0x00, 0x00, 0x00, // type=kString
+    0x0B, 0x00, 0x00, 0x00, // size=11(strlen)
+    0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, // data="hello world", without ending \0
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x02, 0x00, 0x00, 0x00, // type=kBuffer
+    0x04, 0x00, 0x00, 0x00, // size=4
+    0x01, 0x02, 0x03, 0x04, // data=bytes
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x03, 0x00, 0x00, 0x00, // type=kSignedInt32
+    0x20, 0x00, 0x00, 0x00, // size=4, data=32
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x04, 0x00, 0x00, 0x00, // type=kSignedInt64
+    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // size=8, data=64
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x05, 0x00, 0x00, 0x00, // type=kFloat32
+    0xCD, 0xCC, 0x4C, 0x40, // size=4, data=3.2
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x06, 0x00, 0x00, 0x00, // type=kFloat64
+    0x9A, 0x99, 0x99, 0x99, 0x99, 0x99, 0x19, 0x40, // size=8, data=6.4
+    
+    0x0A, 0x00, 0x00, 0x00, // type=kEmptyKey
+    0x09, 0x00, 0x00, 0x00, // type=kInteger
+    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // size=8, data=64
+  };
+  printf("=================================\n");
+  idevice::hexdump((void*)&expect_data, sizeof(expect_data), auxiliary_header_size);
+
+  ASSERT_EQ(serialized.Size(), sizeof(expect_data));
+  char* acutal_ptr = reinterpret_cast<char*>(serialized.GetBuffer(0));
+  for (int i = 0; i < serialized.Size(); ++i) {
+    ASSERT_EQ((char)*(acutal_ptr + i), (char)expect_data[i]);
+  }
+}
+
+TEST(DTXPrimitiveArrayTest, DeserializeAndSerialize) {
   char* buffer = nullptr;
   size_t buffer_size = 0;
   READ_CONTENT_FROM_FILE("dtxmsg_notifyofpublishedcapabilities.bin");
@@ -278,5 +364,4 @@ TEST(DTXPrimitiveArrayTest, Serialize) {
   ASSERT_EQ(serialized.Size(), auxiliary_length);
   printf("=================================\n");
   idevice::hexdump(serialized.GetBuffer(0), serialized.Size(), auxiliary_header_size);
-  // TODO: memcpy
 }

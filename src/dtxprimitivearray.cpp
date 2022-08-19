@@ -1,13 +1,14 @@
 #include "idevice/dtxprimitivearray.h"
 
 #include <cassert> // assert
+#include <algorithm> // std::max
 
 using namespace idevice;
 
-constexpr uint64_t kDTXPrimitiveArrayDefaultSize = 0x200;
-constexpr uint64_t kDTXPrimitiveArrayHeaderSize = 0x10;
-constexpr uint64_t kDTXPrimitiveArrayCapacityAlignment = kDTXPrimitiveArrayDefaultSize + kDTXPrimitiveArrayHeaderSize; // 0x210
-constexpr uint64_t kDTXPrimitiveArrayDefaultCapacity = kDTXPrimitiveArrayDefaultSize - kDTXPrimitiveArrayHeaderSize; // 0x1F0, F0 01 00 00 00 00 00 00
+constexpr size_t kDTXPrimitiveArrayDefaultSize = 0x200;
+constexpr size_t kDTXPrimitiveArrayHeaderSize = 0x10;
+constexpr size_t kDTXPrimitiveArrayCapacityAlignment = kDTXPrimitiveArrayDefaultSize + kDTXPrimitiveArrayHeaderSize; // 0x210
+constexpr size_t kDTXPrimitiveArrayDefaultCapacity = kDTXPrimitiveArrayDefaultSize - kDTXPrimitiveArrayHeaderSize; // 0x1F0, F0 01 00 00 00 00 00 00
 
 // static
 std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* buffer, size_t buffer_size) {
@@ -121,12 +122,12 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
   // Serialize DTXPrimitiveArrayHeader
 #define DTXPRIMITIVEARRAY_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
   size_t size = SerializedLength();
-  uint64_t capacity = DTXPRIMITIVEARRAY_MEM_ALIGN(size, kDTXPrimitiveArrayCapacityAlignment);
+  uint64_t capacity = DTXPRIMITIVEARRAY_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size), kDTXPrimitiveArrayCapacityAlignment);
   serializer(reinterpret_cast<const char*>(&capacity), sizeof(uint64_t));
   serializer(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
 #undef DTXPRIMITIVEARRAY_MEM_ALIGN
   
-  uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
+  const uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
   // Serialize items
   for (auto& item : items_) {
     if (as_dict_) {
@@ -135,7 +136,14 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
     }
     
     uint32_t type = item.GetType();
+    if (type == DTXPrimitiveValue::kNull) {
+      continue;
+    }
+    
     serializer(reinterpret_cast<const char*>(&type), sizeof(uint32_t));
+    if (item.Size() == 0) {
+      continue;
+    }
     
     switch (type) {
       case DTXPrimitiveValue::kString: {
