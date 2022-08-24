@@ -20,6 +20,7 @@ class DTXMessageParser {
   bool ParseIncomingBytes(const char* buffer, size_t size);
   
   std::vector<std::shared_ptr<DTXMessage>> PopAllParsedMessages();
+  size_t ParsedMessageCount() const { return parsed_message_queue_.size(); }
   
  private:
   //const char* Read(ByteReader& reader, size_t size, size_t* actual_size);

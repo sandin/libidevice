@@ -131,8 +131,9 @@ bool DTXMessageParser::ParseMessageWithHeader(const DTXMessageHeader& header, co
   
   std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(data, size);
   message->SetIdentifier(header.identifier);
-  message->SetChannelCode(header.channel_code);
   message->SetConversationIndex(header.conversation_index);
+  message->SetChannelCode(header.channel_code);
+  message->SetExpectsReply(header.expects_reply != 0);
   parsed_message_queue_.emplace(std::move(message));
   
   if (header.fragment_count == 1) {

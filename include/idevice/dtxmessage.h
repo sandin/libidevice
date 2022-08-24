@@ -79,6 +79,9 @@ class DTXMessage {
   void SetChannelCode(uint32_t channel_code) { channel_code_ = channel_code; }
   uint32_t ChannelCode() const { return channel_code_; }
   
+  void SetExpectsReply(bool expects_reply) { expects_reply_ = expects_reply; }
+  bool ExpectsReply() const { return expects_reply_; }
+  
   size_t PayloadSize() const { return payload_size_; }
   char* PayloadBuffer() const { return payload_buffer_; }
   
@@ -102,6 +105,7 @@ class DTXMessage {
   uint32_t identifier_ = 0;
   uint32_t conversation_index_ = 0;
   uint32_t channel_code_ = 0;
+  bool expects_reply_ = false;
   
   bool deserialized_ = false;
   

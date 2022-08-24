@@ -169,6 +169,7 @@ void DTXMessage::Dump(bool dumphex) const {
   printf("identifier: %d\n", identifier_);
   printf("conversation_index: %d\n", conversation_index_);
   printf("channel_code: %d\n", channel_code_);
+  printf("expects_reply: %d\n", expects_reply_);
   printf("auxiliary:\n");
   if (auxiliary_ != nullptr) {
     auxiliary_->Dump(dumphex);
