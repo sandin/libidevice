@@ -15,7 +15,7 @@ FetchContent_MakeAvailable(googletest)
 
 # libimobiledevice
 if (NOT DEFINED ENV{IMB_PKG_CONFIG_PATH})
-    message(FATAL_ERROR "not defined env var: IMB_PKG_CONFIG_PATH for imobiledevice") # "../perfcat_build_scripts/built/darwin-arm64/lib/pkgconfig"
+    message(FATAL_ERROR "not defined env var: IMB_PKG_CONFIG_PATH for imobiledevice") # "../libimobiledevice/built/darwin-arm64/lib/pkgconfig"
 endif()
 set(ENV{PKG_CONFIG_PATH} $ENV{IMB_PKG_CONFIG_PATH})
 find_package(PkgConfig)
@@ -87,13 +87,22 @@ add_definitions(-DENABLE_NSKEYEDARCHIVE_TEST)
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_test)
 
+# fuzzer
+#add_executable(
+#  ${PROJECT_NAME}_fuzzer
+#  test/dtxmessageparser_fuzzer.cpp
+#)
+#target_compile_options(${PROJECT_NAME}_fuzzer PUBLIC -g -O1 -fsanitize=fuzzer)
+#set_target_properties(${PROJECT_NAME}_fuzzer PROPERTIES LINK_FLAGS -fsanitize=fuzzer)
+#target_link_libraries(${PROJECT_NAME}_fuzzer ${PROJECT_NAME})
+
 # tools
 add_executable(
-  ${PROJECT_NAME}_decoder
+  idevice_decoder
   tools/decoder.cpp
 )
 target_link_libraries(
-  ${PROJECT_NAME}_decoder
+  idevice_decoder
   ${PROJECT_NAME}
 )
 

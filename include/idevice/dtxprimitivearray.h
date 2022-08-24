@@ -152,11 +152,11 @@ class DTXPrimitiveValue {
         break;
       }
       case kBuffer: {
+        nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(d_.b, Size());
+        printf("[type=kBuffer, size=%zu, value=%s]\n", Size(), value.ToJson().c_str());
         if (dumphex) {
           hexdump(d_.b, Size(), 0);
         }
-        nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(d_.b, Size());
-        printf("[type=kBuffer, size=%zu, value=%s]\n", Size(), value.ToJson().c_str());
         break;
       }
       case kSignedInt32:
