@@ -28,6 +28,6 @@ bool DTXTransport::Receive(char* buffer, uint32_t size, uint32_t* received) {
 
 bool DTXTransport::ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received) {
   InstrumentService::Result result = instrument_service_->ReceiveWithTimeout(buffer, size, timeout, received);
-  printf("ReceiveWithTimeout result: %d\n", result);
+  //printf("ReceiveWithTimeout result: %d\n", result);
   return result == InstrumentService::ResultCode::kOk || result == InstrumentService::ResultCode::kTimeout;
 }

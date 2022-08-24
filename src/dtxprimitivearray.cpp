@@ -185,3 +185,12 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
   return true;
 }
 
+void DTXPrimitiveArray::Dump(bool dumphex) const {
+  printf("DTXPrimitiveArray, size=%zu: \n", Size());
+  size_t i = 0;
+  for (const auto& item : items_) {
+    printf("\titem #%zu: ", i);
+    item.Dump(dumphex);
+    i++;
+  }
+}

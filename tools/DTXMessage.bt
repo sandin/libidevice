@@ -1,0 +1,115 @@
+//------------------------------------------------
+//--- 010 Editor v5.0.2 Binary Template
+//
+//      File: DTXMessage.bt
+//   Authors: lds
+//   Version: 0.0.1
+//   Purpose: Define a template for parsing
+//            DTXMessage binary files.
+//  Category: Operating System
+// File Mask: DTXMessage.bin
+//------------------------------------------------
+
+typedef struct {
+    uint32 magic <fgcolor=cBlack, bgcolor=cYellow>;
+    uint32 message_header_size;
+    uint16 fragment_index;
+    uint16 fragment_count;
+    uint32 length;
+    uint32 identifier;
+    uint32 conversation_index;
+    uint32 channel_code;
+    uint32 expects_reply;
+} DTXMessageHeader;
+
+typedef struct {
+    uint32 message_type;
+    uint32 auxiliary_length;
+    uint64 total_length;
+} DTXMessagePayloadHeader;
+
+typedef struct {
+    uint64 capacity;
+    uint64 size;
+} DTXPrimitiveArrayHeader;
+
+
+LittleEndian();
+local uint64 remain;
+
+while (!FEof()) {
+remain = FileSize() - FTell();
+if (remain < 0x20) {
+    break;
+}
+
+struct {
+
+DTXMessageHeader header;
+if (header.magic != 0x1F3D5B79 || header.message_header_size != 0x20) {
+    Printf("bad DTXMessage magic=%d\n", header.magic); 
+    break;
+}
+remain = FileSize() - FTell();
+if (remain < header.length) {
+    break;
+}
+
+if (header.fragment_count == 1) {
+    DTXMessagePayloadHeader payloadHeader;
+    local int64 payload_length = payloadHeader.total_length - payloadHeader.auxiliary_length;
+    if (payloadHeader.auxiliary_length > 0) {
+        DTXPrimitiveArrayHeader primitiveArrayHeader;
+        local int64 auxiliary_end = FTell() + primitiveArrayHeader.size;
+        while(FTell() < auxiliary_end) {
+            struct {
+                uint32 type;
+                Printf("type=%d\n", type);
+                switch (type) {
+                    case 1:
+                    case 2:
+                        struct {
+                            uint32 len;
+                            byte bytes[len];
+                        } value;
+                        break;
+                    case 3:
+                        struct {
+                            int32 val;
+                        } value;
+                        break;
+                    case 4:
+                    case 9:
+                        struct {
+                            int64 val;
+                        } value;
+                        break;
+                    case 5:
+                        struct {
+                            float val;
+                        } value;
+                        break;
+                    case 6:
+                        struct {
+                            double val;
+                        } value;
+                        break;
+                    case 10:
+                    default:
+                        break;
+                }
+            } auxiliary;
+        }
+    }
+    if (payload_length > 0) {
+        byte payload[payload_length];
+    }
+  
+
+} else {
+    Printf("header.fragment_count=%d\n", header.fragment_count); 
+    // TODO
+}
+
+} DTXMessage;
+} // end of while EOF

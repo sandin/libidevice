@@ -6,6 +6,8 @@
 #include <cstring> // memcpy
 #include <algorithm> // std::min
 
+#include "idevice/macro_def.h"
+#include "idevice/idevice.h" // hexdump
 #include "idevice/instrument.h"
 
 namespace idevice {
@@ -58,6 +60,10 @@ class BufferedDTXTransport {
       if (!Flush()) {
         return false;
       }
+#if IDEVICE_DEBUG
+      IDEVICE_LOG_D("Send\n");
+      hexdump((void*)(data), size, 0);
+#endif
       uint32_t actual_size = 0;
       return transport_->Send(data, size, &actual_size);
     }
@@ -82,6 +88,10 @@ class BufferedDTXTransport {
       return; // nothing to do
     }
     uint32_t actual_size = 0;
+#if IDEVICE_DEBUG
+    IDEVICE_LOG_D("Flush\n");
+    hexdump(buffer_, buffer_used_, 0);
+#endif
     bool ret = transport_->Send(buffer_, buffer_used_, &actual_size);
     buffer_used_ = 0;
     return ret;

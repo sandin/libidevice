@@ -4,6 +4,7 @@
 #include <thread>
 #include <memory> // std::unique_ptr, std::shared_ptr
 #include <atomic>
+#include <utility> // std::pair
 #include <unordered_map>
 
 #include "idevice/blockingqueue.h"
@@ -19,6 +20,8 @@ namespace idevice {
 class DTXConnection : public DTXMessenger {
  public:
   using ChannelIdentifier = uint32_t;
+  using MessageIdentifier = uint32_t;
+  using DTXMessageWithRoutingInfo = std::pair<std::shared_ptr<DTXMessage>, DTXMessageRoutingInfo>;
   
   DTXConnection(DTXTransport* transport) : transport_(transport) {}
   virtual ~DTXConnection() {}
@@ -31,7 +34,7 @@ class DTXConnection : public DTXMessenger {
   bool CannelChannel(std::shared_ptr<DTXChannel> channel);
 
   // virtual bool SendMessageSync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
-  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
+  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel, ReplyHandler callback) override;
 
  private:
   struct Packet {
@@ -60,15 +63,19 @@ class DTXConnection : public DTXMessenger {
   std::atomic_bool parsing_thread_running_ = ATOMIC_VAR_INIT(false);
   std::unique_ptr<std::thread> parsing_thread_ = nullptr; ///< consumer of incoming packets
   
-  BlockingQueue<std::shared_ptr<DTXMessage>> send_queue_;
+  BlockingQueue<DTXMessageWithRoutingInfo> send_queue_;
   BlockingQueue<std::unique_ptr<Packet>> receive_queue_;
   
-  std::atomic<ChannelIdentifier> next_channel_code_ = ATOMIC_VAR_INIT(0);
+  std::atomic<ChannelIdentifier> next_channel_code_ = ATOMIC_VAR_INIT(1);
   std::unordered_map<ChannelIdentifier, std::shared_ptr<DTXChannel>> channels_by_code_;
+  
+  std::atomic<MessageIdentifier> next_msg_identifier = ATOMIC_VAR_INIT(1);
   
   DTXTransport* transport_;
   DTXMessageParser incoming_parser_;
   DTXMessageTransmitter outgoing_transmitter_;
+  
+  DTXChannel default_channel_;
 
 }; // class DTXConnection
 

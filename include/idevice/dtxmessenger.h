@@ -6,6 +6,7 @@
 namespace idevice {
 
 class DTXMessage;
+class DTXChannel;
 
 // Interface
 class DTXMessenger {
@@ -15,7 +16,7 @@ class DTXMessenger {
   virtual ~DTXMessenger() {}
   
   // virtual bool SendMessageSync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) = 0;
-  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) = 0;
+  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel, ReplyHandler callback) = 0;
 }; 
 
 }  // namespace idevice

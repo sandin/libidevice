@@ -4,7 +4,9 @@
 #include <fstream>
 #include <memory> // std::make_unique
 
+#include "idevice/macro_def.h"
 #include "nskeyedarchiver/nskeyedarchiver.hpp"
+#include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
 using namespace idevice;
 
@@ -49,23 +51,30 @@ std::shared_ptr<DTXMessage> DTXMessage::Deserialize(const char* bytes, size_t si
   uint32_t auxiliary_length = *(uint32_t*)(bytes + 0x04);
   uint64_t total_length = *(uint64_t*)(bytes + 0x08);
   uint64_t payload_length = total_length - auxiliary_length;
-  // TODO: #if DEBUG
+#if IDEVICE_DEBUG
   printf("message_type: %d\n", message_type);
   printf("auxiliary_length: %d\n", auxiliary_length);
   printf("total_length: %llu\n", total_length);
   printf("payload_length: %llu\n", payload_length);
-  // TODO: #endif
+#endif
   
   const char* auxiliary_ptr = bytes + kDTXMessagePayloadHeaderSize;
   const char* payload_ptr = bytes + kDTXMessagePayloadHeaderSize + auxiliary_length;
   
   std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>(message_type);
-  message->SetAuxiliary(DTXPrimitiveArray::Deserialize(bytes + kDTXMessagePayloadHeaderSize, auxiliary_length));
-  message->SetPayloadBuffer(const_cast<char*>(payload_ptr), payload_length, true);
+  if (auxiliary_length > 0) {
+    message->SetAuxiliary(DTXPrimitiveArray::Deserialize(bytes + kDTXMessagePayloadHeaderSize, auxiliary_length));
+  }
+  if (payload_length > 0) {
+    message->SetPayloadBuffer(const_cast<char*>(payload_ptr), payload_length, true);
+    nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(payload_ptr, payload_length);
+    message->SetPayloadObject(std::make_unique<nskeyedarchiver::KAValue>(std::move(value)));
+  }
   if (message_type == 7) {
     printf("TODO: DecompressedData(), use zlib\n"); // TODO
   }
   
+  message->SetDeserialized(true);
   return message;
 }
 
@@ -83,24 +92,27 @@ size_t DTXMessage::SerializedLength() {
 
 bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
   // Serialize DTXMessagePayloadHeader
-  {
-    serializer(reinterpret_cast<const char*>(&message_type_), sizeof(uint32_t));
-    
-    MaybeSerializeAuxiliaryObjects();
-    uint32_t auxiliary_length = auxiliary_->SerializedLength();
-    serializer(reinterpret_cast<const char*>(&auxiliary_length), sizeof(uint32_t));
-    
-    MaybeSerializePayloadObject();
-    serializer(reinterpret_cast<const char*>(&payload_size_), sizeof(uint64_t));
-  }
+  serializer(reinterpret_cast<const char*>(&message_type_), sizeof(uint32_t));
+  
+  MaybeSerializeAuxiliaryObjects();
+  uint32_t auxiliary_length = auxiliary_->SerializedLength();
+  serializer(reinterpret_cast<const char*>(&auxiliary_length), sizeof(uint32_t));
+  
+  MaybeSerializePayloadObject();
+  uint64_t total_length = auxiliary_length + payload_size_;
+  serializer(reinterpret_cast<const char*>(&total_length), sizeof(uint64_t));
   
   // Serialize auxiliary
-  if (!auxiliary_->SerializeTo(serializer)) {
-    return false;
+  if (auxiliary_length > 0) {
+    if (!auxiliary_->SerializeTo(serializer)) {
+      return false;
+    }
   }
 
   // Serialize payload
-  serializer(payload_buffer_, payload_size_);
+  if (payload_size_ > 0) {
+    serializer(payload_buffer_, payload_size_);
+  }
   return true;
 }
 
@@ -149,4 +161,26 @@ void DTXMessage::AppendAuxiliary(nskeyedarchiver::KAValue&& aux) {
   size_t index = auxiliary_->Size();
   auxiliary_->Append(DTXPrimitiveValue() /* as placeholder */);
   auxiliary_objects_.insert(std::make_pair(index, std::move(aux)));
+}
+
+void DTXMessage::Dump(bool dumphex) const {
+  printf("==== DTXMessage ====\n");
+  printf("message_type: %d\n", message_type_);
+  printf("identifier: %d\n", identifier_);
+  printf("conversation_index: %d\n", conversation_index_);
+  printf("channel_code: %d\n", channel_code_);
+  printf("auxiliary:\n");
+  if (auxiliary_ != nullptr) {
+    auxiliary_->Dump(dumphex);
+  } else {
+    printf("none\n");
+  }
+  printf("payload(size=%zu):\n", payload_size_);
+  if (dumphex && payload_buffer_ != nullptr && payload_size_ > 0) {
+    hexdump(payload_buffer_, payload_size_, 0);
+  }
+  if (payload_object_ != nullptr) {
+    printf("%s\n", payload_object_->ToJson().c_str());
+  }
+  printf("==== /DTXMessage ====\n");
 }

@@ -4,8 +4,12 @@
 #include <cstdint> // int32_t, int64_t, uint64_t
 #include <cstdlib> // malloc, free
 #include <cstring> // memcpy
+#include <string>
 #include <vector>
 #include <memory> // std::unique_ptr
+
+#include "idevice/idevice.h" // hexdump
+#include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
 namespace idevice {
 
@@ -131,6 +135,49 @@ class DTXPrimitiveValue {
   Type GetType() const { return t_; }
   void SetType(Type t) { t_ = t; }
   
+  void Dump(bool dumphex = true) const {
+    switch (t_) {
+      case kNull:
+        printf("[type=kNull, size=0, value=]\n");
+      case kEmptyKey:
+        printf("[type=kEmptyKey, size=0, value=]\n");
+        break;
+      case kString: {
+        size_t str_len = Size();
+        char* str = static_cast<char*>(malloc(str_len + 1));
+        strncpy(str, d_.b, str_len);
+        str[str_len] = '\0';
+        printf("[type=kString, size=%zu, value=%s]\n", Size(), str);
+        free(str);
+        break;
+      }
+      case kBuffer: {
+        if (dumphex) {
+          hexdump(d_.b, Size(), 0);
+        }
+        nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(d_.b, Size());
+        printf("[type=kBuffer, size=%zu, value=%s]\n", Size(), value.ToJson().c_str());
+        break;
+      }
+      case kSignedInt32:
+        printf("[type=kSignedInt32, size=%zu, value=%d]\n", Size(), d_.i32);
+        break;
+      case kSignedInt64:
+        printf("[type=kSignedInt64, size=%zu, value=%lld]\n", Size(), d_.i64);
+        break;
+      case kFloat32:
+        printf("[type=kFloat32, size=%zu, value=%f]\n", Size(), d_.f);
+        break;
+      case kFloat64:
+        printf("[type=kFloat64, size=%zu, value=%f]\n", Size(), d_.d);
+        break;
+      case kInteger:
+        printf("[type=kSignedInt64, size=%zu, value=%llu]\n", Size(), d_.u);
+      default:
+        break;
+    }
+  }
+  
  private:
   union {
     char* b;  // kString or kBuffer
@@ -174,6 +221,8 @@ class DTXPrimitiveArray {
   }
   
   size_t Size() const { return items_.size(); }
+  
+  void Dump(bool dumphex = true) const;
   
  private:
   std::vector<DTXPrimitiveValue> items_;

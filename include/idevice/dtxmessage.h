@@ -28,6 +28,7 @@ constexpr uint32_t kDTXMessageHeaderSize = sizeof(DTXMessageHeader);
 struct DTXMessageRoutingInfo {
   uint32_t identifier;
   uint32_t conversation_index;
+  uint32_t channel_code;
 };
 
 class DTXMessage {
@@ -78,6 +79,14 @@ class DTXMessage {
   void SetChannelCode(uint32_t channel_code) { channel_code_ = channel_code; }
   uint32_t ChannelCode() const { return channel_code_; }
   
+  size_t PayloadSize() const { return payload_size_; }
+  char* PayloadBuffer() const { return payload_buffer_; }
+  
+  void SetDeserialized(bool deserialized) { deserialized_ = deserialized; }
+  bool Deserialized() const { return deserialized_; }
+  
+  void Dump(bool dumphex = true) const;
+  
  private:
   void MaybeSerializeAuxiliaryObjects();
   void MaybeSerializePayloadObject();
@@ -86,12 +95,15 @@ class DTXMessage {
   char* payload_buffer_ = nullptr;
   size_t payload_size_ = 0;
   uint32_t message_type_ = 0;
-  std::unique_ptr<DTXPrimitiveArray> auxiliary_;
+  std::unique_ptr<DTXPrimitiveArray> auxiliary_ = nullptr;
   std::unordered_map<size_t, nskeyedarchiver::KAValue> auxiliary_objects_;
   
+  // DTXMessageRoutingInfo
   uint32_t identifier_ = 0;
   uint32_t conversation_index_ = 0;
   uint32_t channel_code_ = 0;
+  
+  bool deserialized_ = false;
   
 }; // class DTXMessage
 

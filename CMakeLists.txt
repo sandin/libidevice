@@ -44,6 +44,8 @@ set(HEADERS
     include/idevice/dtxchannel.h
     include/idevice/dtxtransport.h
     include/idevice/dtxprimitivearray.h
+    include/idevice/macro_def.h
+    include/idevice/macro_undef.h
 )
 set(SOURCES
     src/instrument.cpp
@@ -74,6 +76,7 @@ add_executable(
   test/idevice_test.cpp
   test/instrument_test.cpp
   test/dtxprimitivearray_test.cpp
+  test/dtxmessageparser_test.cpp
 )
 target_link_libraries(
   ${PROJECT_NAME}_test
@@ -83,6 +86,16 @@ target_link_libraries(
 add_definitions(-DENABLE_NSKEYEDARCHIVE_TEST)
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_test)
+
+# tools
+add_executable(
+  ${PROJECT_NAME}_decoder
+  tools/decoder.cpp
+)
+target_link_libraries(
+  ${PROJECT_NAME}_decoder
+  ${PROJECT_NAME}
+)
 
 # asan
 #target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -fno-omit-frame-pointer)
