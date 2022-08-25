@@ -95,7 +95,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     consumed_size += message_size_with_header;
   } // end of while
   
-  assert(consumed_size <= buffer_size); // TODO: define DEBUG_ASSERT
+  IDEVICE_ASSERT(consumed_size <= buffer_size, "consumed_size <= buffer_size");
   if (consumed_size > 0) {
     // Case D, after we consume one or more complete DTXMessageHeader+DTXMessage,
     // but there is a leftover at the end of the buffer.

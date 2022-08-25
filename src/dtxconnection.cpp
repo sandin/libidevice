@@ -135,7 +135,7 @@ void DTXConnection::SendThread() {
     const DTXMessageRoutingInfo& routing_info = message_with_routing_info.second;
     
     BufferedDTXTransport buffered_transport(transport_, send_buffer, send_buffer_size);
-    bool ret = outgoing_transmitter_.TransmitMessage(message, 0, {0, 0} /* TODO */, [&](const char* buffer, size_t size) -> bool {
+    bool ret = outgoing_transmitter_.TransmitMessage(message, 0, {0, 0, 0} /* TODO */, [&](const char* buffer, size_t size) -> bool {
       return buffered_transport.Send(buffer, size);
     });
     buffered_transport.Flush();

@@ -77,6 +77,7 @@ add_executable(
   test/instrument_test.cpp
   test/dtxprimitivearray_test.cpp
   test/dtxmessageparser_test.cpp
+  test/dtxmessagetransmitter_test.cpp
 )
 target_link_libraries(
   ${PROJECT_NAME}_test

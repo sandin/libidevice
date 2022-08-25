@@ -9,11 +9,11 @@ using namespace idevice;
 bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, DTXMessageRoutingInfo routing_info, Transmitter transmitter) {
   size_t serialized_length = message->SerializedLength();
   uint32_t number_of_pieces = FragmentsForLength(serialized_length);
-  assert(fragment_index < number_of_pieces); // TODO: DEBUG_ASSERT("fragmentIndex < numberOfPieces")
+  IDEVICE_ASSERT(fragment_index < number_of_pieces, "fragmentIndex < numberOfPieces");
   
   if (number_of_pieces == 1) {
     // single fragment
-    assert(fragment_index == 0); // TODO: DEBUG_ASSERT("fragmentIndex == 0")
+    IDEVICE_ASSERT(fragment_index == 0, "fragmentIndex == 0");
     
     // transmit the DTXMessageHeader, size=0x20
     DTXMessageHeader header;

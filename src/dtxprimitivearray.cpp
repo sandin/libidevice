@@ -3,7 +3,7 @@
 #include <cassert> // assert
 #include <algorithm> // std::max
 
-#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN
+#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN, IDEVICE_ASSERT
 
 using namespace idevice;
 
@@ -104,7 +104,7 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
         break; // empty dictionary key, the keys are empty and we ignore them
       }
       default:
-        assert(false); // TODO
+        IDEVICE_ASSERT(false, "unknown type %d\n", type);
         break;
     }
   }
@@ -187,7 +187,7 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
         break; // empty dictionary key, the keys are empty and we ignore them
       }
       default:
-        assert(false); // TODO
+        IDEVICE_ASSERT(false, "unknown type %d\n", type);
         break;
     }
     
