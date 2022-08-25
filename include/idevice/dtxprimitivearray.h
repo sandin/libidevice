@@ -81,8 +81,7 @@ class DTXPrimitiveValue {
     return *this;
   }
   
-  explicit DTXPrimitiveValue(const char* str, size_t str_len) : t_(kString) {
-    s_ = str_len;
+  explicit DTXPrimitiveValue(const char* str, size_t str_len) : t_(kString), s_(str_len) {
     d_.b = static_cast<char*>(malloc(str_len + 1));
     strncpy(d_.b, str, str_len);
     d_.b[str_len] = '\0';

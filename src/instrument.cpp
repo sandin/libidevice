@@ -3,10 +3,12 @@
 #include <cstring>     // strcmp
 #include <functional>  // std::bind, std::placeholders
 
+#include "idevice/macro_def.h"
+
 using namespace idevice;
 
-static const char kInstrumentServiceName[] = "com.apple.instruments.remoteserver";
-static const char kInstrumentSecureServiceName[] =
+constexpr char kInstrumentServiceName[] = "com.apple.instruments.remoteserver";
+constexpr char kInstrumentSecureServiceName[] =
     "com.apple.instruments.remoteserver.DVTSecureSocketProxy";
 
 IService::Result InstrumentService::NewClient(idevice_t device, lockdownd_service_descriptor_t service,
@@ -36,6 +38,7 @@ IService::Result InstrumentService::Connect(idevice_t device) {
   service_error_t ret = service_client_factory_start_service(
       device_, kInstrumentSecureServiceName, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
+  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n", kInstrumentSecureServiceName, ret);
   if (ret == kResultOk) {
     return ResultCode::kOk;
   }
@@ -44,7 +47,7 @@ IService::Result InstrumentService::Connect(idevice_t device) {
   ret = service_client_factory_start_service(
       device_, kInstrumentServiceName, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
-  
+  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n", kInstrumentSecureServiceName, ret);
   return ret;
 }
 

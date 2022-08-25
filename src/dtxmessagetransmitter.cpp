@@ -26,16 +26,13 @@ bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& m
     header.conversation_index = message->ConversationIndex(); // TODO
     header.channel_code = message->ChannelCode(); // TODO
     header.expects_reply = 1; // TODO
-    IDEVICE_LOG_D("TransmitMessage message\n");
 #if IDEVICE_DEBUG
+    IDEVICE_LOG_D("TransmitMessage message\n");
     IDEVICE_DUMP_DTXMESSAGE_HEADER(header);
 #endif
     transmitter(reinterpret_cast<const char*>(&header), sizeof(DTXMessageHeader));
     
     // transmit the DTXMessage(payload)
-#if IDEVICE_DEBUG
-    message->Dump();
-#endif
     message->SerializeTo(transmitter);
     return true;
   } else {

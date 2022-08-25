@@ -108,7 +108,7 @@ void DTXConnection::ParsingThread() {
       // TODO: callback with routing info
     }
     
-    IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_identifier);
+    IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_identifier + 1);
   }
   printf("ParsingThread stop\n");
 }
@@ -158,7 +158,7 @@ std::shared_ptr<DTXChannel> DTXConnection::MakeChannelWithIdentifier(const std::
   std::shared_ptr<DTXChannel> channel = std::make_shared<DTXChannel>(this, channel_identifier, channel_code);
   channels_by_code_.insert(std::make_pair(channel_code, channel));
   
-  std::shared_ptr<DTXMessage> message = DTXMessage::Create("_requestChannelWithCode:identifier");
+  std::shared_ptr<DTXMessage> message = DTXMessage::Create("_requestChannelWithCode:identifier:");
   message->AppendAuxiliary(DTXPrimitiveValue(static_cast<int32_t>(channel_code)));
   message->AppendAuxiliary(nskeyedarchiver::KAValue(channel_identifier.c_str()));
   // TODO: set Message Routing Info

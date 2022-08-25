@@ -102,6 +102,12 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
   uint64_t total_length = auxiliary_length + payload_size_;
   serializer(reinterpret_cast<const char*>(&total_length), sizeof(uint64_t));
   
+#if IDEVICE_DEBUG
+  printf("message_type: %d\n", message_type_);
+  printf("auxiliary_length: %d\n", auxiliary_length);
+  printf("total_length: %llu\n", total_length);
+#endif
+  
   // Serialize auxiliary
   if (auxiliary_length > 0) {
     if (!auxiliary_->SerializeTo(serializer)) {
@@ -117,14 +123,10 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
 }
 
 void DTXMessage::MaybeSerializePayloadObject() {
-  if (payload_object_ != nullptr) {
-    if (payload_buffer_ != nullptr) {
-      free(payload_buffer_);
-    }
+  if (payload_buffer_ == nullptr) {
     payload_size_ = 0;
     nskeyedarchiver::NSKeyedArchiver::ArchivedData(*payload_object_, &payload_buffer_, &payload_size_,
                                                  nskeyedarchiver::NSKeyedArchiver::OutputFormat::Binary);
-    payload_object_.reset(); // to nullptr;
   }
 }
 

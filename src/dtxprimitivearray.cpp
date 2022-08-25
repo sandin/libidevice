@@ -113,16 +113,27 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
 }
 
 size_t DTXPrimitiveArray::SerializedLength() const {
-  size_t length = 0;
+  size_t length = kDTXPrimitiveArrayHeaderSize;
   for (const auto& item : items_) {
-    length += item.Size();
+    if (item.GetType() == DTXPrimitiveValue::kNull) {
+      continue;
+    }
+    
+    if (as_dict_) {
+      length += sizeof(uint32_t); // size of kEmptyKey type
+    }
+    length += sizeof(uint32_t); // size of type
+    if (item.GetType() == DTXPrimitiveValue::kBuffer || item.GetType() == DTXPrimitiveValue::kString) {
+      length += sizeof(uint32_t); // size of value payload
+    }
+    length += item.Size();      // size of value
   }
   return length;
 }
 
 bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
   // Serialize DTXPrimitiveArrayHeader
-  size_t size = SerializedLength();
+  size_t size = SerializedLength() - kDTXPrimitiveArrayHeaderSize;
   uint64_t capacity = IDEVICE_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size), kDTXPrimitiveArrayCapacityAlignment);
   serializer(reinterpret_cast<const char*>(&capacity), sizeof(uint64_t));
   serializer(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
@@ -130,14 +141,14 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
   const uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
   // Serialize items
   for (auto& item : items_) {
-    if (as_dict_) {
-      // insert an empty key for DTXPrimitiveDictionary
-      serializer(reinterpret_cast<const char*>(&empty_key_type), sizeof(uint32_t));
-    }
-    
     uint32_t type = item.GetType();
     if (type == DTXPrimitiveValue::kNull) {
       continue;
+    }
+    
+    if (as_dict_) {
+      // insert an empty key for DTXPrimitiveDictionary
+      serializer(reinterpret_cast<const char*>(&empty_key_type), sizeof(uint32_t));
     }
     
     serializer(reinterpret_cast<const char*>(&type), sizeof(uint32_t));

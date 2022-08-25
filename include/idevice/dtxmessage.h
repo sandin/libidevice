@@ -33,8 +33,12 @@ struct DTXMessageRoutingInfo {
 
 class DTXMessage {
  public:
+  constexpr static int kACKMessageType = 0;
   constexpr static int kNormalMessageType = 2;
+  constexpr static int kErrorMessageType = 4;
   constexpr static int kCompressedMessageType = 7;
+  // TODO: kDTXInterruptionMessage
+  // TODO: kDTXAckBarrierMessage
   
   DTXMessage(uint32_t message_type = kNormalMessageType) : message_type_(message_type) {}
   virtual ~DTXMessage() {}
@@ -105,7 +109,7 @@ class DTXMessage {
   uint32_t identifier_ = 0;
   uint32_t conversation_index_ = 0;
   uint32_t channel_code_ = 0;
-  bool expects_reply_ = false;
+  bool expects_reply_ = true;
   
   bool deserialized_ = false;
   
