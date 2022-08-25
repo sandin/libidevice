@@ -4,19 +4,6 @@
 
 using namespace idevice;
 
-#define DUMP_DTX_MESSAGE_HEADER(header) \
-  printf("==============\n"); \
-  printf("magic: %x\n", header.magic); \
-  printf("message_header_size: %d\n", header.message_header_size); \
-  printf("fragment_index: %d\n", header.fragment_index); \
-  printf("fragment_count: %d\n", header.fragment_count); \
-  printf("length: %d\n", header.length); \
-  printf("identifier: %d\n", header.identifier); \
-  printf("conversation_index: %d\n", header.conversation_index); \
-  printf("channel_code: %d\n", header.channel_code); \
-  printf("expects_reply: %d\n", header.expects_reply); \
-  printf("==============\n"); \
-
 // run on worker thread
 bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
   // copy the data from receive buffer into parsing buffer
@@ -126,30 +113,30 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
 
 bool DTXMessageParser::ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size) {
 #if IDEVICE_DEBUG
-  DUMP_DTX_MESSAGE_HEADER(header);
+  IDEVICE_DUMP_DTXMESSAGE_HEADER(header);
 #endif
-  
-  std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(data, size);
-  message->SetIdentifier(header.identifier);
-  message->SetConversationIndex(header.conversation_index);
-  message->SetChannelCode(header.channel_code);
-  message->SetExpectsReply(header.expects_reply != 0);
-  parsed_message_queue_.emplace(std::move(message));
   
   if (header.fragment_count == 1) {
     // DTXMessage has only one fragment
     // TODO:
     
+    std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(data, size);
+    message->SetIdentifier(header.identifier);
+    message->SetConversationIndex(header.conversation_index);
+    message->SetChannelCode(header.channel_code);
+    message->SetExpectsReply(header.expects_reply != 0);
+    parsed_message_queue_.emplace(std::move(message));
 
   } else {
     // DTXMessage has multiple fragments
+    
+    printf("TODO: decode multiple fragments\n");
     
     // TODO:
   }
   
   return false; // FIXME:
 }
-
 
 std::vector<std::shared_ptr<DTXMessage>> DTXMessageParser::PopAllParsedMessages() {
   std::vector<std::shared_ptr<DTXMessage>> result;

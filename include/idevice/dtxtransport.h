@@ -106,4 +106,6 @@ class BufferedDTXTransport {
 
 }  // namespace idevice
 
+#include "idevice/macro_undef.h"
+
 #endif // IDEVICE_DTXTRANSPORT_H

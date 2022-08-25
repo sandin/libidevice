@@ -9,6 +9,7 @@
 #include <memory> // std::unique_ptr
 
 #include "idevice/idevice.h" // hexdump
+#include "idevice/macro_def.h" // IDEVICE_DISALLOW_COPY_AND_ASSIGN
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
 namespace idevice {
@@ -29,7 +30,7 @@ class DTXPrimitiveValue {
     kMaxType = 11
   };
 
-#define MOVE_DTXPRIMITIVE_VALUE(other) \
+#define DTXPRIMITIVEVALUE_MOVE_VALUE(other) \
   t_ = other.t_; \
   s_ = other.s_; \
   switch (other.t_) { \
@@ -67,17 +68,15 @@ class DTXPrimitiveValue {
     }
   }
   
-  // disallow copy and assign
-  DTXPrimitiveValue(const DTXPrimitiveValue&) = delete;
-  void operator=(const DTXPrimitiveValue&) = delete;
+  IDEVICE_DISALLOW_COPY_AND_ASSIGN(DTXPrimitiveValue);
   
   // allow move and assign
   DTXPrimitiveValue(DTXPrimitiveValue&& other) : t_(other.t_) {
-    MOVE_DTXPRIMITIVE_VALUE(other);
+    DTXPRIMITIVEVALUE_MOVE_VALUE(other);
     other.t_ = kNull;
   }
   DTXPrimitiveValue& operator=(DTXPrimitiveValue&& other) {
-    MOVE_DTXPRIMITIVE_VALUE(other);
+    DTXPRIMITIVEVALUE_MOVE_VALUE(other);
     other.t_ = kNull;
     return *this;
   }
@@ -190,9 +189,7 @@ class DTXPrimitiveValue {
   size_t s_ = 0;
   Type t_ = kNull;
   
-#ifdef MOVE_DTXPRIMITIVE_VALUE
-#undef MOVE_DTXPRIMITIVE_VALUE
-#endif
+#undef DTXPRIMITIVEVALUE_MOVE_VALUE
 };  // class DTXPrimitiveValue
 
 /**
@@ -248,5 +245,7 @@ class DTXPrimitiveArray {
 using DTXPrimitiveDictionary = DTXPrimitiveArray;
 
 }  // namespace idevice
+
+#include "idevice/macro_undef.h"
 
 #endif  // IDEVICE_DTXPRIMITIVE_ARRAY_H

@@ -1,22 +1,13 @@
 #include "idevice/dtxconnection.h"
 
+#include <algorithm> // std::max
+
+#include "idevice/macro_def.h"
 
 using namespace idevice;
 
 static const size_t kReceiveBufferSize = 16 * 1024;
 static const uint32_t kReceiveTimeout = 1 * 1000;
-
-#define DTXCONNECTION_START_THREAD(thread_var, thread_func, stop_flag) \
-  stop_flag.store(true, std::memory_order_release); \
-  thread_var = std::make_unique<std::thread>(std::bind(&DTXConnection::thread_func, this));
-
-#define DTXCONNECTION_STOP_THREAD(thread_var, stop_flag, await) \
-  if (stop_flag.load(std::memory_order_acquire)) { \
-    stop_flag.store(false, std::memory_order_release); \
-    if (await) { \
-      thread_var->join(); \
-    } \
-  } \
 
 bool DTXConnection::Connect() {
   bool ret = transport_->Connect();
@@ -40,11 +31,11 @@ bool DTXConnection::Disconnect() {
 }
 
 void DTXConnection::StartReceiveThread() {
-  DTXCONNECTION_START_THREAD(receive_thread_, ReceiveThread, receive_thread_running_);
+  IDEVICE_START_THREAD(receive_thread_, &DTXConnection::ReceiveThread, receive_thread_running_);
 }
 
 void DTXConnection::StopReceiveThread(bool await) {
-  DTXCONNECTION_STOP_THREAD(receive_thread_, receive_thread_running_, await);
+  IDEVICE_STOP_THREAD(receive_thread_, receive_thread_running_, await);
 }
 
 void DTXConnection::ReceiveThread() {
@@ -85,11 +76,11 @@ void DTXConnection::ReceiveThread() {
 }
 
 void DTXConnection::StartParsingThread() {
-  DTXCONNECTION_START_THREAD(parsing_thread_, ParsingThread, parsing_thread_running_);
+  IDEVICE_START_THREAD(parsing_thread_, &DTXConnection::ParsingThread, parsing_thread_running_);
 }
 
 void DTXConnection::StopParsingThread(bool await) {
-  DTXCONNECTION_STOP_THREAD(parsing_thread_, parsing_thread_running_, await);
+  IDEVICE_STOP_THREAD(parsing_thread_, parsing_thread_running_, await);
 }
 
 void DTXConnection::ParsingThread() {
@@ -102,23 +93,32 @@ void DTXConnection::ParsingThread() {
     std::unique_ptr<Packet> packet = receive_queue_.Take();
     printf("parsing %zu bytes\n", packet->size);
     bool ret = incoming_parser_.ParseIncomingBytes(packet->buffer, packet->size);
-    free(packet->buffer);
+    free(packet->buffer); // all data in the packet buffer has been copied to the parser buffer
     
     if (!ret) {
       printf("Error: can not parse incoming bytes, diconnecting.\n");
       Disconnect();
       break;
     }
+    
+    std::vector<std::shared_ptr<DTXMessage>> messages = incoming_parser_.PopAllParsedMessages();
+    uint32_t max_identifier = 0;
+    for (auto& msg : messages) {
+      max_identifier = std::max(max_identifier, msg->Identifier());
+      // TODO: callback with routing info
+    }
+    
+    IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_identifier);
   }
   printf("ParsingThread stop\n");
 }
 
 void DTXConnection::StartSendThread() {
-  DTXCONNECTION_START_THREAD(send_thread_, SendThread, send_thread_running_);
+  IDEVICE_START_THREAD(send_thread_, &DTXConnection::SendThread, send_thread_running_);
 }
 
 void DTXConnection::StopSendThread(bool await) {
-  DTXCONNECTION_STOP_THREAD(send_thread_, send_thread_running_, await);
+  IDEVICE_STOP_THREAD(send_thread_, send_thread_running_, await);
 }
 
 void DTXConnection::SendThread() {
@@ -178,8 +178,7 @@ bool DTXConnection::CannelChannel(std::shared_ptr<DTXChannel> channel) {
 
 // virtual override
 void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel, ReplyHandler callback) {
-  uint32_t identifier = next_msg_identifier.fetch_add(1);
-
+  uint32_t identifier = next_msg_identifier_.fetch_add(1);
   
   DTXMessageRoutingInfo routing_info;
   msg->SetChannelCode(channel.ChannelIdentifier());

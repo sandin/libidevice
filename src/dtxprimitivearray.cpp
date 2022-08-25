@@ -3,6 +3,8 @@
 #include <cassert> // assert
 #include <algorithm> // std::max
 
+#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN
+
 using namespace idevice;
 
 constexpr size_t kDTXPrimitiveArrayDefaultSize = 0x200;
@@ -120,12 +122,10 @@ size_t DTXPrimitiveArray::SerializedLength() const {
 
 bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
   // Serialize DTXPrimitiveArrayHeader
-#define DTXPRIMITIVEARRAY_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
   size_t size = SerializedLength();
-  uint64_t capacity = DTXPRIMITIVEARRAY_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size), kDTXPrimitiveArrayCapacityAlignment);
+  uint64_t capacity = IDEVICE_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size), kDTXPrimitiveArrayCapacityAlignment);
   serializer(reinterpret_cast<const char*>(&capacity), sizeof(uint64_t));
   serializer(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
-#undef DTXPRIMITIVEARRAY_MEM_ALIGN
   
   const uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
   // Serialize items

@@ -69,7 +69,7 @@ class DTXConnection : public DTXMessenger {
   std::atomic<ChannelIdentifier> next_channel_code_ = ATOMIC_VAR_INIT(1);
   std::unordered_map<ChannelIdentifier, std::shared_ptr<DTXChannel>> channels_by_code_;
   
-  std::atomic<MessageIdentifier> next_msg_identifier = ATOMIC_VAR_INIT(1);
+  std::atomic<MessageIdentifier> next_msg_identifier_ = ATOMIC_VAR_INIT(1);
   
   DTXTransport* transport_;
   DTXMessageParser incoming_parser_;

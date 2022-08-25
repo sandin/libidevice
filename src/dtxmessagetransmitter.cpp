@@ -4,19 +4,6 @@
 
 #include "idevice/macro_def.h"
 
-#define DUMP_DTX_MESSAGE_HEADER(header) \
-  printf("==============\n"); \
-  printf("magic: %x\n", header.magic); \
-  printf("message_header_size: %d\n", header.message_header_size); \
-  printf("fragment_index: %d\n", header.fragment_index); \
-  printf("fragment_count: %d\n", header.fragment_count); \
-  printf("length: %d\n", header.length); \
-  printf("identifier: %d\n", header.identifier); \
-  printf("conversation_index: %d\n", header.conversation_index); \
-  printf("channel_code: %d\n", header.channel_code); \
-  printf("expects_reply: %d\n", header.expects_reply); \
-  printf("==============\n"); \
-
 using namespace idevice;
 
 bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, DTXMessageRoutingInfo routing_info, Transmitter transmitter) {
@@ -40,7 +27,9 @@ bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& m
     header.channel_code = message->ChannelCode(); // TODO
     header.expects_reply = 1; // TODO
     IDEVICE_LOG_D("TransmitMessage message\n");
-    DUMP_DTX_MESSAGE_HEADER(header);
+#if IDEVICE_DEBUG
+    IDEVICE_DUMP_DTXMESSAGE_HEADER(header);
+#endif
     transmitter(reinterpret_cast<const char*>(&header), sizeof(DTXMessageHeader));
     
     // transmit the DTXMessage(payload)

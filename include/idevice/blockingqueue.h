@@ -7,6 +7,8 @@
 #include <condition_variable>
 #include <functional> // std::function
 
+#include "idevice/macro_def.h" // IDEVICE_DISALLOW_COPY_AND_ASSIGN
+
 namespace idevice {
 
 /**
@@ -18,9 +20,7 @@ class BlockingQueue {
   BlockingQueue() {}
   ~BlockingQueue() {}
   
-  // disallow copy and assign
-  BlockingQueue(const BlockingQueue&) = delete;
-  void operator=(const BlockingQueue&) = delete;
+  IDEVICE_DISALLOW_COPY_AND_ASSIGN(BlockingQueue);
   
   /**
    * add(copy) a new element to the end of the queue
@@ -105,5 +105,7 @@ private:
 }; // class BlockingQueue
 
 }  // namespace idevice
+
+#include "idevice/macro_undef.h"
 
 #endif // IDEVICE_BLOCKING_QUEUE_H

@@ -5,9 +5,9 @@
 #include <vector>
 #include <memory> // std::unique_ptr
 
-namespace idevice {
+#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN, IDEVICE_DISALLOW_COPY_AND_ASSIGN
 
-#define IDEVICE_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
+namespace idevice {
 
 class BufferMemory {
  public:
@@ -18,6 +18,8 @@ class BufferMemory {
       free(buffer_);
     }
   }
+  
+  IDEVICE_DISALLOW_COPY_AND_ASSIGN(BufferMemory);
   
   char* Allocate(size_t req_size) {
     if (capacity_ - size_ < req_size) {
@@ -76,9 +78,7 @@ class ByteBuffer {
   };
   ~ByteBuffer() {}
   
-  // disallow copy and assign
-  ByteBuffer(const ByteBuffer&) = delete;
-  void operator=(const ByteBuffer&) = delete;
+  IDEVICE_DISALLOW_COPY_AND_ASSIGN(ByteBuffer);
   
   // allow move and assign
   ByteBuffer(ByteBuffer&& other) : buffer_(std::move(other.buffer_)) {}
@@ -195,5 +195,7 @@ class ByteBuffer {
 }; // class ByteBuffer
 
 }  // namespace idevice
+
+#include "idevice/macro_undef.h"
 
 #endif // IDEVICE_BYTE_BUFFER_H
