@@ -21,6 +21,7 @@ class DTXConnection : public DTXMessenger {
  public:
   using ChannelIdentifier = uint32_t;
   using MessageIdentifier = uint32_t;
+  using ReplyIdentifier = uint64_t; // ChannelIdentifier << 32 || MessageIdentifier
   using DTXMessageWithRoutingInfo = std::pair<std::shared_ptr<DTXMessage>, DTXMessageRoutingInfo>;
   
   DTXConnection(DTXTransport* transport) : transport_(transport) {}
@@ -33,8 +34,10 @@ class DTXConnection : public DTXMessenger {
   std::shared_ptr<DTXChannel> MakeChannelWithIdentifier(const std::string& channel_identifier);
   bool CannelChannel(std::shared_ptr<DTXChannel> channel);
 
-  // virtual bool SendMessageSync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
+  virtual std::shared_ptr<DTXMessage> SendMessageSync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel, uint32_t timeout_ms = -1) override;
   virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel, ReplyHandler callback) override;
+  
+  void DumpStat() const; // ONLY FOR DEBUG
 
  private:
   struct Packet {
@@ -54,6 +57,8 @@ class DTXConnection : public DTXMessenger {
   void ParsingThread();
   void StopParsingThread(bool await);
   
+  void RouteMessage(std::shared_ptr<DTXMessage> msg);
+  
   std::atomic_bool send_thread_running_ = ATOMIC_VAR_INIT(false);
   std::unique_ptr<std::thread> send_thread_ = nullptr;  /// sender of outgoing messages
   
@@ -68,6 +73,8 @@ class DTXConnection : public DTXMessenger {
   
   std::atomic<ChannelIdentifier> next_channel_code_ = ATOMIC_VAR_INIT(1);
   std::unordered_map<ChannelIdentifier, std::shared_ptr<DTXChannel>> channels_by_code_;
+  
+  std::unordered_map<ReplyIdentifier, ReplyHandler> _handlers_by_identifier_;
   
   std::atomic<MessageIdentifier> next_msg_identifier_ = ATOMIC_VAR_INIT(1);
   

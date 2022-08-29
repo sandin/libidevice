@@ -15,7 +15,7 @@
 #endif
 
 // LOG 
-#define IDEVICE_LOG_LEVEL 3
+#define IDEVICE_LOG_LEVEL 2
 #if IDEVICE_LOG_LEVEL >= 0
 #define IDEVICE_LOG_E(fmt, ...) \
   fprintf(stderr, "[ERROR] %s:%d:%s(): " fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
@@ -81,5 +81,7 @@
   printf("channel_code: %d\n", header.channel_code); \
   printf("expects_reply: %d\n", header.expects_reply); \
   printf("==============\n"); \
+
+#define IDEVICE_DTXMESSAGE_IDENTIFIER(channel_code, msg_identifier) static_cast<uint64_t>(channel_code) << 32 | msg_identifier
 
 #endif // IDEVICE_MACRO_SCOPE_H

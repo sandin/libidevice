@@ -26,19 +26,22 @@ constexpr uint32_t kDTXMessageHeaderMagic = 0x1F3D5B79;
 constexpr uint32_t kDTXMessageHeaderSize = sizeof(DTXMessageHeader);
 
 struct DTXMessageRoutingInfo {
-  uint32_t identifier;
+  uint32_t msg_identifier;
   uint32_t conversation_index;
   uint32_t channel_code;
+  uint32_t expects_reply;
 };
 
 class DTXMessage {
  public:
-  constexpr static int kACKMessageType = 0;
-  constexpr static int kNormalMessageType = 2;
-  constexpr static int kErrorMessageType = 4;
-  constexpr static int kCompressedMessageType = 7;
-  // TODO: kDTXInterruptionMessage
-  // TODO: kDTXAckBarrierMessage
+  // TODO: static constexpr int kWhatMessageType = 0;
+  static constexpr int kNormalMessageType = 2;
+  static constexpr int kDTXInterruptionMessage = 2; // errorStatus=2
+  static constexpr int kErrorMessageType = 4;
+  static constexpr int kkDTXBarrierMessageType = 5;
+  static constexpr int kDTXAckBarrierMessageType = 5;
+  static constexpr int kDTXHeartbeatMessage = 5;
+  static constexpr int kCompressedMessageType = 7;
   
   DTXMessage(uint32_t message_type = kNormalMessageType) : message_type_(message_type) {}
   virtual ~DTXMessage() {}

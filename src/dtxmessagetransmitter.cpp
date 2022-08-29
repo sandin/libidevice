@@ -6,7 +6,7 @@
 
 using namespace idevice;
 
-bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, DTXMessageRoutingInfo routing_info, Transmitter transmitter) {
+bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, const DTXMessageRoutingInfo& routing_info, Transmitter transmitter) {
   size_t serialized_length = message->SerializedLength();
   uint32_t number_of_pieces = FragmentsForLength(serialized_length);
   IDEVICE_ASSERT(fragment_index < number_of_pieces, "fragmentIndex < numberOfPieces");
@@ -22,10 +22,10 @@ bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& m
     header.fragment_index = fragment_index;
     header.fragment_count = number_of_pieces;
     header.length = serialized_length;
-    header.identifier = message->Identifier(); // TODO
-    header.conversation_index = message->ConversationIndex(); // TODO
-    header.channel_code = message->ChannelCode(); // TODO
-    header.expects_reply = 1; // TODO
+    header.identifier = routing_info.msg_identifier;
+    header.conversation_index = routing_info.conversation_index;
+    header.channel_code = routing_info.channel_code;
+    header.expects_reply = routing_info.expects_reply;
 #if IDEVICE_DEBUG
     IDEVICE_LOG_D("TransmitMessage message\n");
     IDEVICE_DUMP_DTXMESSAGE_HEADER(header);

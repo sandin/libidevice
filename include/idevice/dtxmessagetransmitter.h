@@ -13,7 +13,7 @@ class DTXMessageTransmitter {
   DTXMessageTransmitter() {}
   virtual ~DTXMessageTransmitter() {}
   
-  bool TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, DTXMessageRoutingInfo message_routing_info, Transmitter transmitter);
+  bool TransmitMessage(const std::shared_ptr<DTXMessage>& message, uint32_t fragment_index, const DTXMessageRoutingInfo& message_routing_info, Transmitter transmitter);
   uint32_t FragmentsForLength(size_t length);
   
   void SetSuggestedFragmentSize(uint32_t suggested_fragment_size) { suggested_fragment_size_ = suggested_fragment_size; }

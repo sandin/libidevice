@@ -97,6 +97,11 @@ class BlockingQueue {
     }
   }
   
+  /**
+   * Get size of the queue
+   */
+  size_t Size() const { return queue_.size(); }
+  
 private:
   mutable std::mutex mutex_;
   std::queue<T> queue_;

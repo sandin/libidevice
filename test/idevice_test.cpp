@@ -53,18 +53,16 @@ TEST(idevice, Test) {
   }
   defer(connection, { connection->Disconnect(); free(connection); });
   
-  std::this_thread::sleep_for(std::chrono::seconds(5)); // TODO
-  
   std::shared_ptr<DTXChannel> channel = connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
-  std::this_thread::sleep_for(std::chrono::seconds(5)); // TODO
   
-  /*
   std::shared_ptr<DTXMessage> message = DTXMessage::Create("runningProcesses");
-  channel->SendMessageAsync(message,  [&](auto msg) {
-    printf("message reply handler\n");
+  channel->SendMessageAsync(message, [&](auto msg) {
+    printf("runningProcesses rseponse message:\n");
+    msg->Dump();
     // TODO:
   });
-  */
+  
+  connection->DumpStat();
   
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
