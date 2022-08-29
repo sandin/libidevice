@@ -13,7 +13,7 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
 #endif
     char* ptr = parsing_buffer_.Allocate(size);
     if (ptr == nullptr) {
-      printf("Error: can not parse incoming bytes, OOM.\n");
+      IDEVICE_LOG_E("Error: can not parse incoming bytes, OOM.\n");
       return false;
     }
     memcpy(ptr, buffer, size);
@@ -74,11 +74,11 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     header.expects_reply = *(uint32_t*)(ptr + 28);
     ptr += kDTXMessageHeaderSize;
     if (header.magic != kDTXMessageHeaderMagic) {
-      printf("Error: handling %zu bytes with unexpected protocol header(magic=%d).\n", size, header.magic);
+      IDEVICE_LOG_E("Error: handling %zu bytes with unexpected protocol header(magic=%d).\n", size, header.magic);
       return false;
     }
     if (header.message_header_size != kDTXMessageHeaderSize) {
-      printf("Error: handling %zu bytes with unexpected protocol header(header_size=%d).\n", size, header.message_header_size);
+      IDEVICE_LOG_E("Error: handling %zu bytes with unexpected protocol header(header_size=%d).\n", size, header.message_header_size);
       return false;
     }
     
@@ -91,8 +91,8 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
     }
     
     // Case C, we got at least one complete header and payload, parse(and consume) them
-    ParseMessageWithHeader(header, ptr, header.length);
-    consumed_size += message_size_with_header;
+    size_t consumed_length = ParseMessageWithHeader(header, ptr, header.length);
+    consumed_size += header.message_header_size + consumed_length;
   } // end of while
   
   IDEVICE_ASSERT(consumed_size <= buffer_size, "consumed_size <= buffer_size");
@@ -111,31 +111,46 @@ bool DTXMessageParser::ParseIncomingBytes(const char* buffer, size_t size) {
   return true;
 }
 
-bool DTXMessageParser::ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size) {
+size_t DTXMessageParser::ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size) {
 #if IDEVICE_DEBUG
   IDEVICE_DUMP_DTXMESSAGE_HEADER(header);
 #endif
   
   if (header.fragment_count == 1) {
     // DTXMessage has only one fragment
-    // TODO:
-    
     std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(data, size);
-    message->SetIdentifier(header.identifier);
-    message->SetConversationIndex(header.conversation_index);
-    message->SetChannelCode(header.channel_code);
-    message->SetExpectsReply(header.expects_reply != 0);
+    IDEVICE_SETUP_DTXMESSAGE_WITH_HREADER(message, header);
+    message->SetCostSize(kDTXMessageHeaderSize + size);
     parsed_message_queue_.emplace(std::move(message));
-
+    return size;
   } else {
     // DTXMessage has multiple fragments
-    
-    printf("TODO: decode multiple fragments\n");
-    
-    // TODO:
+    if (header.fragment_index == 0) {
+      ByteBuffer fragmented_buffer(header.length);
+      fragmented_buffers_by_identifier.insert(std::make_pair(header.identifier, std::move(fragmented_buffer)));
+      return 0; // the first fragment of the message only contains the header, so no need to copy the `data` to the fragmented buffer
+    } else {
+      auto found = fragmented_buffers_by_identifier.find(header.identifier);
+      if (found != fragmented_buffers_by_identifier.end()) {
+        ByteBuffer& fragmented_buffer = found->second;
+        fragmented_buffer.Append(data, size); // copy the data to the fragmented buffer
+        
+        if (header.fragment_index == header.fragment_count - 1) {
+          // the last fragment of the message
+          std::shared_ptr<DTXMessage> message = DTXMessage::Deserialize(reinterpret_cast<const char*>(fragmented_buffer.GetBuffer(0)), fragmented_buffer.Size());
+          IDEVICE_SETUP_DTXMESSAGE_WITH_HREADER(message, header);
+          message->SetCostSize(kDTXMessageHeaderSize + fragmented_buffer.Size());
+          parsed_message_queue_.emplace(std::move(message));
+          fragmented_buffers_by_identifier.erase(found); // release the fragmented buffer
+        }
+        
+        return size;
+      } else {
+        IDEVICE_LOG_E("Can not find the fragmented buffer with identifier %d\n", header.identifier);
+        return 0;
+      }
+    }
   }
-  
-  return false; // FIXME:
 }
 
 std::vector<std::shared_ptr<DTXMessage>> DTXMessageParser::PopAllParsedMessages() {

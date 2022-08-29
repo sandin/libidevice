@@ -34,16 +34,19 @@ struct DTXMessageRoutingInfo {
 
 class DTXMessage {
  public:
-  // TODO: static constexpr int kWhatMessageType = 0;
-  static constexpr int kNormalMessageType = 2;
-  static constexpr int kDTXInterruptionMessage = 2; // errorStatus=2
-  static constexpr int kErrorMessageType = 4;
-  static constexpr int kkDTXBarrierMessageType = 5;
-  static constexpr int kDTXAckBarrierMessageType = 5;
-  static constexpr int kDTXHeartbeatMessage = 5;
-  static constexpr int kCompressedMessageType = 7;
+  enum MessageType {
+    kInterruptionMessage = 0,
+    kDataMessageType = 1,
+    kSelectorMessageType = 2,
+    kUnknownMessageType = 3, //  TODO
+    kErrorMessageType = 4,
+    kBarrierMessageType = 5,
+    kPrimitiveMessage = 6,
+    kCompressedMessageType = 7,
+    kNestedMessageType = 8,
+  };
   
-  DTXMessage(uint32_t message_type = kNormalMessageType) : message_type_(message_type) {}
+  DTXMessage(uint32_t message_type = kSelectorMessageType) : message_type_(message_type) {}
   virtual ~DTXMessage() {}
   
   /**
@@ -69,11 +72,18 @@ class DTXMessage {
    */
   static std::shared_ptr<DTXMessage> Create(const char* selector);
   
+  uint32_t MessageType() const { return message_type_; }
   void SetMessageType(uint32_t message_type) { message_type_ = message_type; }
-  void SetPayloadBuffer(char* buffer, size_t size, bool should_copy);
-  void SetPayloadObject(std::unique_ptr<nskeyedarchiver::KAValue>&& payload_object) { payload_object_ = std::move(payload_object); }
-  void SetAuxiliary(std::unique_ptr<DTXPrimitiveArray>&& auxiliary) { auxiliary_ = std::move(auxiliary); }
   
+  void SetPayloadBuffer(char* buffer, size_t size, bool should_copy);
+  char* PayloadBuffer() const { return payload_buffer_; }
+  size_t PayloadSize() const { return payload_size_; }
+  
+  void SetPayloadObject(std::unique_ptr<nskeyedarchiver::KAValue>&& payload_object) { payload_object_ = std::move(payload_object); }
+  const std::unique_ptr<nskeyedarchiver::KAValue>& PayloadObject() const { return payload_object_; }
+  
+  const std::unique_ptr<DTXPrimitiveArray>& Auxiliary() const { return auxiliary_; }
+  void SetAuxiliary(std::unique_ptr<DTXPrimitiveArray>&& auxiliary) { auxiliary_ = std::move(auxiliary); }
   void AppendAuxiliary(DTXPrimitiveValue&& aux) { auxiliary_->Append(std::forward<DTXPrimitiveValue>(aux)); }
   void AppendAuxiliary(nskeyedarchiver::KAValue&& aux);
   
@@ -89,8 +99,11 @@ class DTXMessage {
   void SetExpectsReply(bool expects_reply) { expects_reply_ = expects_reply; }
   bool ExpectsReply() const { return expects_reply_; }
   
-  size_t PayloadSize() const { return payload_size_; }
-  char* PayloadBuffer() const { return payload_buffer_; }
+  /**
+   * Get size of message with the header
+   */
+  size_t CostSize() const { return cost_size_; }
+  void SetCostSize(size_t cost_size) { cost_size_ = cost_size; }
   
   void SetDeserialized(bool deserialized) { deserialized_ = deserialized; }
   bool Deserialized() const { return deserialized_; }
@@ -103,6 +116,7 @@ class DTXMessage {
   
   std::unique_ptr<nskeyedarchiver::KAValue> payload_object_ = nullptr;
   char* payload_buffer_ = nullptr;
+  size_t cost_size_ = 0;
   size_t payload_size_ = 0;
   uint32_t message_type_ = 0;
   std::unique_ptr<DTXPrimitiveArray> auxiliary_ = nullptr;

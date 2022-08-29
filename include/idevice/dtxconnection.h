@@ -24,7 +24,7 @@ class DTXConnection : public DTXMessenger {
   using ReplyIdentifier = uint64_t; // ChannelIdentifier << 32 || MessageIdentifier
   using DTXMessageWithRoutingInfo = std::pair<std::shared_ptr<DTXMessage>, DTXMessageRoutingInfo>;
   
-  DTXConnection(DTXTransport* transport) : transport_(transport) {}
+  DTXConnection(IDTXTransport* transport) : transport_(transport) {}
   virtual ~DTXConnection() {}
   
   bool Connect();
@@ -78,7 +78,7 @@ class DTXConnection : public DTXMessenger {
   
   std::atomic<MessageIdentifier> next_msg_identifier_ = ATOMIC_VAR_INIT(1);
   
-  DTXTransport* transport_;
+  IDTXTransport* transport_;
   DTXMessageParser incoming_parser_;
   DTXMessageTransmitter outgoing_transmitter_;
   

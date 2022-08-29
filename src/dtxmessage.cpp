@@ -22,7 +22,7 @@ static inline void write_buffer_to_file(std::string filename, const char* buffer
 // static
 std::shared_ptr<DTXMessage> DTXMessage::Create(const char* selector) {
   std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>();
-  message->SetMessageType(kNormalMessageType);
+  message->SetMessageType(kSelectorMessageType);
   message->SetPayloadObject(std::make_unique<nskeyedarchiver::KAValue>(selector) /* as NSString */);
   message->SetAuxiliary(std::make_unique<DTXPrimitiveArray>());
   return message;

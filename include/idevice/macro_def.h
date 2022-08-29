@@ -84,4 +84,10 @@
 
 #define IDEVICE_DTXMESSAGE_IDENTIFIER(channel_code, msg_identifier) static_cast<uint64_t>(channel_code) << 32 | msg_identifier
 
+#define IDEVICE_SETUP_DTXMESSAGE_WITH_HREADER(message, header) \
+  message->SetIdentifier(header.identifier); \
+  message->SetConversationIndex(header.conversation_index); \
+  message->SetChannelCode(header.channel_code); \
+  message->SetExpectsReply(header.expects_reply != 0); \
+
 #endif // IDEVICE_MACRO_SCOPE_H

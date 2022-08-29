@@ -11,10 +11,24 @@
 
 namespace idevice {
 
+// Interface Service
+class IDTXTransport {
+ public:
+  virtual ~IDTXTransport() {}
+  
+  virtual bool Connect() = 0;
+  virtual bool Disconnect() = 0;
+  virtual bool IsConnected() const  = 0;
+  
+  virtual bool Send(const char* data, uint32_t size, uint32_t* sent) = 0;
+  virtual bool Receive(char* buffer, uint32_t size, uint32_t* received) = 0;
+  virtual bool ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received) = 0;
+};
+
 /**
  * DTXTransport
  */
-class DTXTransport {
+class DTXTransport : public IDTXTransport {
  public:
   DTXTransport(idevice_t device) : device_(device) {
     instrument_service_ = new InstrumentService();
@@ -26,13 +40,13 @@ class DTXTransport {
     }
   }
   
-  bool Connect();
-  bool Disconnect();
-  bool IsConnected() const;
+  virtual bool Connect() override;
+  virtual bool Disconnect() override;
+  virtual bool IsConnected() const override;
   
-  bool Send(const char* data, uint32_t size, uint32_t* sent);
-  bool Receive(char* buffer, uint32_t size, uint32_t* received);
-  bool ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received);
+  virtual bool Send(const char* data, uint32_t size, uint32_t* sent) override;
+  virtual bool Receive(char* buffer, uint32_t size, uint32_t* received) override;
+  virtual bool ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received) override;
 
  private:
   idevice_t device_ = nullptr;
@@ -45,7 +59,7 @@ class DTXTransport {
  */
 class BufferedDTXTransport {
  public:
-  BufferedDTXTransport(DTXTransport* transport, char* buffer, size_t buffer_size)
+  BufferedDTXTransport(IDTXTransport* transport, char* buffer, size_t buffer_size)
     : transport_(transport), buffer_(buffer), buffer_size_(buffer_size) {}
   
   ~BufferedDTXTransport() {
@@ -89,7 +103,7 @@ class BufferedDTXTransport {
   }
 
  private:
-  DTXTransport* transport_ = nullptr;
+  IDTXTransport* transport_ = nullptr;
   char* buffer_ = nullptr;
   size_t buffer_size_ = 0;
   size_t buffer_used_ = 0;

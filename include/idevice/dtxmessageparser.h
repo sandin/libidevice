@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <vector>
+#include <unordered_map>
 
 #include "idevice/idevice.h"
 #include "idevice/dtxmessage.h"
@@ -24,10 +25,11 @@ class DTXMessageParser {
   
  private:
   //const char* Read(ByteReader& reader, size_t size, size_t* actual_size);
-  bool ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size);
+  size_t ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size);
   
   bool eof_ = false;
   BufferMemory parsing_buffer_;
+  std::unordered_map<uint32_t, ByteBuffer> fragmented_buffers_by_identifier;
   std::queue<std::shared_ptr<DTXMessage>> parsed_message_queue_;
 }; // class DTXMessageParser
 

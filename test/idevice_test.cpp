@@ -1,6 +1,7 @@
 #include "idevice/idevice.h"
 
 #include <gtest/gtest.h>
+#include <fstream> // std::ofstream
 
 #include "libimobiledevice/libimobiledevice.h"
 
@@ -40,11 +41,68 @@ using namespace idevice;
 
 #define defer(label, exp) auto label##_grand = nskeyedarchiver::make_scope_exit([&]() { exp; });
 
+// when this flag is turned on, we will write all sent and received messages
+// to two binary files to make it easy to examine them.
+// By use 010Editor with the template named `DTXMessage.bt` located in the `tools` directory.
+#define DEBUG_DTXTRANSPORT
+#ifdef DEBUG_DTXTRANSPORT
+class DebugProxyTransport : public IDTXTransport {
+ public:
+  DebugProxyTransport(IDTXTransport* proxy, const char* transmit_outfilename, const char* received_outfilename)
+    : proxy_(proxy),
+      transmit_outfile_(transmit_outfilename, std::ofstream::binary),
+      received_outfile_(received_outfilename, std::ofstream::binary) {
+  }
+  virtual ~DebugProxyTransport() {
+    if (proxy_ != nullptr) {
+      delete proxy_;
+    }
+  }
+  
+  virtual bool Connect() override { return proxy_->Connect(); }
+  virtual bool Disconnect() override  { return proxy_->Disconnect(); }
+  virtual bool IsConnected() const override  { return proxy_->IsConnected(); }
+  virtual bool Send(const char* data, uint32_t size, uint32_t* sent) override {
+    bool ret = proxy_->Send(data, size, sent);
+    if (ret) {
+      transmit_outfile_.write(data, *sent);
+      transmit_outfile_.flush();
+    }
+    return ret;
+  }
+  virtual bool Receive(char* buffer, uint32_t size, uint32_t* received) override  {
+    bool ret = proxy_->Receive(buffer, size, received);
+    if (ret) {
+      received_outfile_.write(buffer, *received);
+      received_outfile_.flush();
+    }
+    return ret;
+  }
+  virtual bool ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received) override {
+    bool ret = proxy_->ReceiveWithTimeout(buffer, size, timeout, received);
+    if (ret) {
+      received_outfile_.write(buffer, *received);
+      received_outfile_.flush();
+    }
+    return ret;
+  }
+  
+ private:
+  IDTXTransport* proxy_;
+  std::ofstream transmit_outfile_;
+  std::ofstream received_outfile_;
+};
+#endif // DEBUG_DTXTRANSPORT
+
 TEST(idevice, Test) {
   idevice_t device = GET_FIRST_DEVICE();
   defer(device, idevice_free(device));
   
-  DTXTransport* transport = new DTXTransport(device);
+#ifdef DEBUG_DTXTRANSPORT
+  IDTXTransport* transport = new DebugProxyTransport(new DTXTransport(device), "idevice_transmit_outfile.bin", "idevice_received_outfile.bin");
+#else
+  IDTXTransport* transport = new DTXTransport(device);
+#endif
   defer(transport, free(transport));
   
   DTXConnection* connection = new DTXConnection(transport);

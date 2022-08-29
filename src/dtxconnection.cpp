@@ -7,7 +7,7 @@
 
 using namespace idevice;
 
-static const size_t kReceiveBufferSize = 16 * 1024;
+static const size_t kReceiveBufferSize = 16 * 1024; // 0x4000(16384)
 static const uint32_t kReceiveTimeout = 1 * 1000;
 
 bool DTXConnection::Connect() {
@@ -140,7 +140,7 @@ void DTXConnection::StopSendThread(bool await) {
 }
 
 void DTXConnection::SendThread() {
-  printf("SendThread start\n");
+  IDEVICE_LOG_I("SendThread start\n");
   constexpr size_t send_buffer_size = 8 * 1024;
   char* send_buffer = static_cast<char*>(malloc(send_buffer_size));
   while (send_thread_running_.load(std::memory_order_acquire)) {
@@ -159,7 +159,7 @@ void DTXConnection::SendThread() {
     buffered_transport.Flush();
   
     if (!ret) { // TODO: can we trust this return value?
-      printf("Error: can not send outgoing message, diconnecting.\n");
+      IDEVICE_LOG_E("Error: can not send outgoing message, diconnecting.\n");
       Disconnect();
       break;
     }
@@ -168,7 +168,7 @@ void DTXConnection::SendThread() {
     
   }
   free(send_buffer);
-  printf("SendThread stop\n");
+  IDEVICE_LOG_I("SendThread stop\n");
 }
 
 
@@ -184,7 +184,7 @@ void DTXConnection::StopReceiveThread(bool await) {
 }
 
 void DTXConnection::ReceiveThread() {
-  printf("ReceiveThread start\n");
+  IDEVICE_LOG_I("ReceiveThread start\n");
   std::unique_ptr<Packet> receive_packet = nullptr;
   while (receive_thread_running_.load(std::memory_order_acquire)) {
     if (!IsConnected()) {
@@ -198,12 +198,12 @@ void DTXConnection::ReceiveThread() {
     }
     
     if (!transport_->ReceiveWithTimeout(receive_packet->buffer, kReceiveBufferSize, kReceiveTimeout, (uint32_t*)&receive_packet->size)) {
-      printf("Error: Receive ret != 0\n");
+      IDEVICE_LOG_E("Error: Receive ret != 0\n");
       break;
     }
     
     if (receive_packet->size > 0) {
-      printf("received %zu bytes\n", receive_packet->size);
+      IDEVICE_LOG_V("received %zu bytes\n", receive_packet->size);
       receive_queue_.Push(std::move(receive_packet));
     }
     
@@ -218,7 +218,7 @@ void DTXConnection::ReceiveThread() {
   //if (IsConnected()) {
   //  Disconnect(); // TODO:
   //}
-  printf("ReceiveThread stop\n");
+  IDEVICE_LOG_I("ReceiveThread stop\n");
 }
 
 #pragma mark - Parsing Messages
@@ -232,19 +232,19 @@ void DTXConnection::StopParsingThread(bool await) {
 }
 
 void DTXConnection::ParsingThread() {
-  printf("ParsingThread start\n");
+  IDEVICE_LOG_I("ParsingThread start\n");
   while (parsing_thread_running_.load(std::memory_order_acquire)) {
     if (!IsConnected()) {
       return;
     }
     
     std::unique_ptr<Packet> packet = receive_queue_.Take();
-    printf("parsing %zu bytes\n", packet->size);
+    IDEVICE_LOG_D("parsing %zu bytes\n", packet->size);
     bool ret = incoming_parser_.ParseIncomingBytes(packet->buffer, packet->size);
     free(packet->buffer); // all data in the packet buffer has been copied to the parser buffer
     
     if (!ret) {
-      printf("Error: can not parse incoming bytes, diconnecting.\n");
+      IDEVICE_LOG_E("Error: can not parse incoming bytes, diconnecting.\n");
       Disconnect();
       break;
     }
@@ -257,7 +257,7 @@ void DTXConnection::ParsingThread() {
     }
     IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_msg_identifier + 1);
   }
-  printf("ParsingThread stop\n");
+  IDEVICE_LOG_I("ParsingThread stop\n");
 }
 
 void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
