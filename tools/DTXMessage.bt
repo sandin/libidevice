@@ -34,82 +34,104 @@ typedef struct {
 } DTXPrimitiveArrayHeader;
 
 
+void EatAll() {
+    FSeek(FileSize);
+}
+
+int ParseDTXMessage() {    
+    struct DTXMessage {
+        local uint64 msg_start = FTell();
+        DTXMessageHeader header;
+        if (header.magic != 0x1F3D5B79 || header.message_header_size != 0x20) {
+            Printf("bad DTXMessage magic=%d, pos=0x%X\n", header.magic, msg_start); 
+            EatAll();
+            return -1;
+        }
+    
+        remain = FileSize() - FTell();
+        if (remain < header.length) {
+            EatAll();
+            return -1;
+        }
+
+        if (header.fragment_count == 1) {
+            DTXMessagePayloadHeader payloadHeader;
+            local int64 payload_length = payloadHeader.total_length - payloadHeader.auxiliary_length;
+            if (payloadHeader.auxiliary_length > 0) {
+                DTXPrimitiveArrayHeader primitiveArrayHeader;
+                local int64 auxiliary_end = FTell() + primitiveArrayHeader.size;
+                while(FTell() < auxiliary_end) {
+                    struct {
+                       uint32 type;
+                        Printf("type=%d\n", type);
+                        switch (type) {
+                            case 1:
+                            case 2:
+                                struct {
+                                    uint32 len;
+                                    byte bytes[len];
+                                } value;
+                                break;
+                            case 3:
+                                struct {
+                                    int32 val;
+                                } value;
+                                break;
+                            case 4:
+                            case 9:
+                                struct {
+                                    int64 val;
+                                } value;
+                                break;
+                            case 5:
+                                struct {
+                                    float val;
+                                } value;
+                                break;
+                            case 6:
+                                struct {
+                                    double val;
+                                } value;
+                                break;
+                            case 10:
+                            default:
+                                break;
+                            }
+                    } auxiliary;
+                } // end while
+            } // end if 
+            if (payload_length > 0) {
+                byte payload[payload_length];
+            }
+  
+        } else {
+            Printf("header.fragment_index=%d, fragment_count=%d\n", header.fragment_index, header.fragment_count); 
+            if (header.fragment_index == 0) {
+                // the first fragment only contains the DTXMessageHeader
+            } else {
+                Printf("FTell: %d\n", FTell());
+                byte payload[header.length];
+            }
+            // TODO
+        }
+        
+    } msg;
+    return 0;
+}
+
+
 LittleEndian();
 local uint64 remain;
+local int ret;
 
 while (!FEof()) {
-remain = FileSize() - FTell();
-if (remain < 0x20) {
-    break;
-}
-
-struct {
-
-DTXMessageHeader header;
-if (header.magic != 0x1F3D5B79 || header.message_header_size != 0x20) {
-    Printf("bad DTXMessage magic=%d\n", header.magic); 
-    break;
-}
-remain = FileSize() - FTell();
-if (remain < header.length) {
-    break;
-}
-
-if (header.fragment_count == 1) {
-    DTXMessagePayloadHeader payloadHeader;
-    local int64 payload_length = payloadHeader.total_length - payloadHeader.auxiliary_length;
-    if (payloadHeader.auxiliary_length > 0) {
-        DTXPrimitiveArrayHeader primitiveArrayHeader;
-        local int64 auxiliary_end = FTell() + primitiveArrayHeader.size;
-        while(FTell() < auxiliary_end) {
-            struct {
-                uint32 type;
-                Printf("type=%d\n", type);
-                switch (type) {
-                    case 1:
-                    case 2:
-                        struct {
-                            uint32 len;
-                            byte bytes[len];
-                        } value;
-                        break;
-                    case 3:
-                        struct {
-                            int32 val;
-                        } value;
-                        break;
-                    case 4:
-                    case 9:
-                        struct {
-                            int64 val;
-                        } value;
-                        break;
-                    case 5:
-                        struct {
-                            float val;
-                        } value;
-                        break;
-                    case 6:
-                        struct {
-                            double val;
-                        } value;
-                        break;
-                    case 10:
-                    default:
-                        break;
-                }
-            } auxiliary;
-        }
+    remain = FileSize() - FTell();
+    if (remain < 0x20) {
+        break;
     }
-    if (payload_length > 0) {
-        byte payload[payload_length];
+
+    ret = ParseDTXMessage();
+    if (ret != 0) {
+        break;
     }
-  
-
-} else {
-    Printf("header.fragment_count=%d\n", header.fragment_count); 
-    // TODO
-}
-
-} DTXMessage;
 } // end of while EOF
