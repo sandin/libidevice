@@ -1,4 +1,4 @@
-#include <sys/stat.h>  // stat
+#include "decoder.hpp"
 
 #include <algorithm>  // std::sort
 #include <cstdio>     // fopen
@@ -12,54 +12,9 @@
 #include "idevice/dtxmessageparser.h"
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
-#define USAGE                                                     \
-  "Usage: idevice_decoder [options] <dtx_message_dump_files..>\n" \
-  "  options:\n"                                                  \
-  "    `--hex`: dump data as hex string\n"                        \
-  "    `--limit [count]`: parse messages limit number pre file\n"
-
 using namespace idevice;
-using Args = std::pair<std::vector<std::string>, std::unordered_map<std::string, std::string>>;
 
-static Args parse_args(int argc, char* argv[]) {
-  Args params;
-  std::string key;
-  for (int i = 1; i < argc; ++i) {
-    char* arg = argv[i];
-    size_t str_len = strlen(arg);
-    if (str_len == 0) {
-      key.clear();
-      continue;
-    } else if (str_len > 2 && arg[0] == '-') {
-      key = arg + (arg[1] == '-' ? 2 : 1);
-      params.second.insert(std::make_pair(key, ""));
-    } else {
-      if (!key.empty()) {
-        params.second[key] = arg;
-        key.clear();
-      } else {
-        params.first.push_back(arg);
-      }
-    }
-  }
-  return params;
-}
-
-static inline bool is_flag_set(const Args& args, const std::string& key) {
-  return args.second.find(key) != args.second.end();
-}
-
-static int get_flag_as_int(const Args& args, const std::string& key, int def_val) {
-  auto found = args.second.find(key);
-  if (found != args.second.end()) {
-    if (!found->second.empty()) {
-      return std::stoi(found->second);
-    }
-  }
-  return def_val;
-}
-
-std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::string& filename,
+static std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::string& filename,
                                                                  int limit, bool dumphex) {
   FILE* f = fopen(filename.c_str(), "rb");
   if (!f) {
@@ -96,9 +51,14 @@ std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::stri
   return parser.PopAllParsedMessages();  // copy all pointers
 }
 
-int decode_dtxmsg_dump_files(const std::vector<std::string>& filenames, int limit, bool dumphex) {
+int idevice::tools::decoder_main(const idevice::tools::Args& args) {
+  std::vector<std::string> dump_file = args.first;
+  bool dumphex = idevice::tools::is_flag_set(args, "hex");
+  int limit = idevice::tools::get_flag_as_int(args, "limit", -1);
+
   std::vector<std::shared_ptr<DTXMessage>> messages;
-  for (const auto& filename : filenames) {
+  for (const auto& filename : dump_file) {
+    printf("decode dtxmsg file: %s.\n", filename.c_str());
     auto subvec = decode_dtxmsg_dump_file(filename, limit, dumphex);
     messages.insert(messages.end(), subvec.begin(), subvec.end());  // append_all
   }
@@ -126,19 +86,5 @@ int decode_dtxmsg_dump_files(const std::vector<std::string>& filenames, int limi
   }
 
   printf("decoded %zu messages.\n", msg_count);
-  return 0;
-}
-
-int main(int argc, char* argv[]) {
-  Args args = parse_args(argc, argv);
-  if (args.first.size() < 1) {
-    printf("%s", USAGE);
-    return 0;
-  }
-  std::vector<std::string> dump_file = args.first;
-  bool dumphex = is_flag_set(args, "hex");
-  int limit = get_flag_as_int(args, "limit", -1);
-  decode_dtxmsg_dump_files(dump_file, limit, dumphex);
-
   return 0;
 }

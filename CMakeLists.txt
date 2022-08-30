@@ -97,13 +97,20 @@ gtest_discover_tests(${PROJECT_NAME}_test)
 #set_target_properties(${PROJECT_NAME}_fuzzer PROPERTIES LINK_FLAGS -fsanitize=fuzzer)
 #target_link_libraries(${PROJECT_NAME}_fuzzer ${PROJECT_NAME})
 
-# tools
+# tools: idevice
+include_directories("./tools")
 add_executable(
-  idevice_decoder
+  idevice
+  tools/argparser.hpp
+  tools/argparser.cpp
+  tools/decoder.hpp
   tools/decoder.cpp
+  tools/instruments.hpp
+  tools/instruments.cpp
+  tools/main.cpp
 )
 target_link_libraries(
-  idevice_decoder
+  idevice
   ${PROJECT_NAME}
 )
 

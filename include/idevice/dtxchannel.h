@@ -15,7 +15,8 @@ class DTXChannel /*: public DTXMessenger */ {
   DTXChannel() : DTXChannel(nullptr, "", 0) {}
   virtual ~DTXChannel() {}
 
-  // virtual bool SendMessageSync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) override;
+  std::shared_ptr<DTXMessage> SendMessageSync(std::shared_ptr<DTXMessage> msg,
+                                              uint32_t timeout_ms = -1);
   void SendMessageAsync(std::shared_ptr<DTXMessage> msg, DTXMessenger::ReplyHandler callback);
 
   const std::string& Label() const { return label_; }

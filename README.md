@@ -4,27 +4,31 @@ A library to communicate with services on iOS devices using native protocols.
 
 Based on [libimobiledevice](https://github.com/libimobiledevice/libimobiledevice), additionally implemented **instrument_service**.
 
- 
+​           
+
+
 ## Build
 
 1. Compile the [libimobiledevice](https://github.com/libimobiledevice/libimobiledevice) project first, and then set its pkgconfig output directory to the `IMB_PKG_CONFIG_PATH` environment variable.
 
 e.g.:
-```
+```bash
 $ export IMB_PKG_CONFIG_PATH="../libimobiledevice/built/darwin-arm64/lib/pkgconfig"
 ```
 
 2. Compile with CMake.
 
-```
+```bash
 $ mkdir build && cd build
 $ cmake ..
 // or cmake -G "Xcode" ..
 ```
 
+​             
+
 ## Usage
 
-### library: libidevice
+### libidevice
 
 ```c++
 idevice_t device = ...;
@@ -42,18 +46,51 @@ channel->SendMessageAsync(message,  [&](auto msg) {
 });
 ```
 
+​          
 
+### idevice
+#### runningProcesses
 
-### tool: idevice_decoder
-
-This tool is used to decode the binary records of communication messages with Xcode.
-
-```
-$ idevice_decoder --hex received_outfile.bin transmit_outfile.bin
+Print the list of running processes on your iPhone:
+```bash
+$ idevice instruments runningProcesses
 ```
 
 output:
+```json
+[
+    {
+        "isApplication": false,
+        "name": "FamilyControlsAgent",
+        "pid": 4417,
+        "realAppName": "/System/Library/Frameworks/FamilyControls.framework/FamilyControlsAgent",
+        "startDate": {
+            "time": "1661865623.956983"
+        }
+    },
+    {
+        "isApplication": false,
+        "name": "routined",
+        "pid": 40,
+        "realAppName": "/usr/libexec/routined",
+        "startDate": {
+            "time": "1661787079.115298"
+        }
+    }
+]
 ```
+
+​           
+
+#### decode
+
+This command is used to decode the binary records of communication messages with Xcode:
+```bash
+$ idevice decode --hex received_outfile.bin transmit_outfile.bin
+```
+
+output:
+```bash
 ==== DTXMessage ====
 message_type: 2
 identifier: 5100
