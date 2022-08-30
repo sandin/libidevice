@@ -1,15 +1,15 @@
 #ifndef IDEVICE_DTXPRIMITIVE_ARRAY_H
 #define IDEVICE_DTXPRIMITIVE_ARRAY_H
 
-#include <cstdint> // int32_t, int64_t, uint64_t
-#include <cstdlib> // malloc, free
-#include <cstring> // memcpy
+#include <cstdint>  // int32_t, int64_t, uint64_t
+#include <cstdlib>  // malloc, free
+#include <cstring>  // memcpy
+#include <memory>   // std::unique_ptr
 #include <string>
 #include <vector>
-#include <memory> // std::unique_ptr
 
-#include "idevice/idevice.h" // hexdump
-#include "idevice/macro_def.h" // IDEVICE_DISALLOW_COPY_AND_ASSIGN
+#include "idevice/idevice.h"    // hexdump
+#include "idevice/macro_def.h"  // IDEVICE_DISALLOW_COPY_AND_ASSIGN
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
 namespace idevice {
@@ -31,35 +31,35 @@ class DTXPrimitiveValue {
   };
 
 #define DTXPRIMITIVEVALUE_MOVE_VALUE(other) \
-  t_ = other.t_; \
-  s_ = other.s_; \
-  switch (other.t_) { \
-    case kNull: \
-    case kEmptyKey: \
-      break; \
-    case kString: \
-    case kBuffer: \
-      d_.b = other.d_.b; \
-      break; \
-    case kSignedInt32: \
-      d_.i32 = other.d_.i32; \
-      break; \
-    case kSignedInt64: \
-      d_.i64 = other.d_.i64; \
-      break; \
-    case kFloat32: \
-      d_.f = other.d_.f; \
-      break; \
-    case kFloat64: \
-      d_.d = other.d_.d; \
-      break; \
-    case kInteger: \
-      d_.u = other.d_.u; \
-    default: \
-      break; \
-  } \
-  
-  DTXPrimitiveValue() : t_(kNull), s_(0) {} // null
+  t_ = other.t_;                            \
+  s_ = other.s_;                            \
+  switch (other.t_) {                       \
+    case kNull:                             \
+    case kEmptyKey:                         \
+      break;                                \
+    case kString:                           \
+    case kBuffer:                           \
+      d_.b = other.d_.b;                    \
+      break;                                \
+    case kSignedInt32:                      \
+      d_.i32 = other.d_.i32;                \
+      break;                                \
+    case kSignedInt64:                      \
+      d_.i64 = other.d_.i64;                \
+      break;                                \
+    case kFloat32:                          \
+      d_.f = other.d_.f;                    \
+      break;                                \
+    case kFloat64:                          \
+      d_.d = other.d_.d;                    \
+      break;                                \
+    case kInteger:                          \
+      d_.u = other.d_.u;                    \
+    default:                                \
+      break;                                \
+  }
+
+  DTXPrimitiveValue() : t_(kNull), s_(0) {}  // null
   ~DTXPrimitiveValue() {
     if (t_ == kString || t_ == kBuffer) {
       if (d_.b) {
@@ -67,9 +67,9 @@ class DTXPrimitiveValue {
       }
     }
   }
-  
+
   IDEVICE_DISALLOW_COPY_AND_ASSIGN(DTXPrimitiveValue);
-  
+
   // allow move and assign
   DTXPrimitiveValue(DTXPrimitiveValue&& other) : t_(other.t_) {
     DTXPRIMITIVEVALUE_MOVE_VALUE(other);
@@ -80,7 +80,7 @@ class DTXPrimitiveValue {
     other.t_ = kNull;
     return *this;
   }
-  
+
   explicit DTXPrimitiveValue(const char* str, size_t str_len) : t_(kString), s_(str_len) {
     d_.b = static_cast<char*>(malloc(str_len + 1));
     strncpy(d_.b, str, str_len);
@@ -94,29 +94,19 @@ class DTXPrimitiveValue {
       d_.b = buffer;
     }
   }
-  explicit DTXPrimitiveValue(int32_t i32) : t_(kSignedInt32), s_(sizeof(int32_t)) {
-    d_.i32 = i32;
-  }
-  explicit DTXPrimitiveValue(int64_t i64) : t_(kSignedInt64), s_(sizeof(int64_t)) {
-    d_.i64 = i64;
-  }
-  explicit DTXPrimitiveValue(float f) : t_(kFloat32), s_(sizeof(float)) {
-    d_.f = f;
-  }
-  explicit DTXPrimitiveValue(double d) : t_(kFloat64), s_(sizeof(double)) {
-    d_.d = d;
-  }
-  explicit DTXPrimitiveValue(uint64_t u) : t_(kInteger), s_(sizeof(uint64_t)) {
-    d_.u = u;
-  }
-  
+  explicit DTXPrimitiveValue(int32_t i32) : t_(kSignedInt32), s_(sizeof(int32_t)) { d_.i32 = i32; }
+  explicit DTXPrimitiveValue(int64_t i64) : t_(kSignedInt64), s_(sizeof(int64_t)) { d_.i64 = i64; }
+  explicit DTXPrimitiveValue(float f) : t_(kFloat32), s_(sizeof(float)) { d_.f = f; }
+  explicit DTXPrimitiveValue(double d) : t_(kFloat64), s_(sizeof(double)) { d_.d = d; }
+  explicit DTXPrimitiveValue(uint64_t u) : t_(kInteger), s_(sizeof(uint64_t)) { d_.u = u; }
+
   static DTXPrimitiveValue CreateEmptyDictionaryKey() {
     DTXPrimitiveValue value;
     value.SetType(kEmptyKey);
     value.SetSize(0);
     return value;
   }
-  
+
   char* ToStr() { return d_.b; }
   char* ToBuffer() { return d_.b; }
   int32_t ToSignedInt32() { return d_.i32; }
@@ -124,15 +114,15 @@ class DTXPrimitiveValue {
   float ToFloat32() { return d_.f; }
   double ToFloat64() { return d_.d; }
   uint64_t ToInteger() { return d_.u; }
-  
+
   const void* RawData() { return reinterpret_cast<const void*>(&d_.b); }
-  
+
   size_t Size() const { return s_; }
   void SetSize(size_t s) { s_ = s; }
-  
+
   Type GetType() const { return t_; }
   void SetType(Type t) { t_ = t; }
-  
+
   void Dump(bool dumphex = true) const {
     switch (t_) {
       case kNull:
@@ -150,7 +140,8 @@ class DTXPrimitiveValue {
         break;
       }
       case kBuffer: {
-        nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(d_.b, Size());
+        nskeyedarchiver::KAValue value =
+            nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(d_.b, Size());
         printf("[type=kBuffer, size=%zu, value=%s]\n", Size(), value.ToJson().c_str());
         if (dumphex) {
           hexdump(d_.b, Size(), 0);
@@ -175,7 +166,7 @@ class DTXPrimitiveValue {
         break;
     }
   }
-  
+
  private:
   union {
     char* b;  // kString or kBuffer
@@ -187,7 +178,7 @@ class DTXPrimitiveValue {
   } d_;
   size_t s_ = 0;
   Type t_ = kNull;
-  
+
 #undef DTXPRIMITIVEVALUE_MOVE_VALUE
 };  // class DTXPrimitiveValue
 
@@ -198,36 +189,33 @@ class DTXPrimitiveArray {
  public:
   DTXPrimitiveArray(bool as_dict = true) : as_dict_(as_dict) {}
   ~DTXPrimitiveArray() {}
-  
+
   static std::unique_ptr<DTXPrimitiveArray> Deserialize(const char* buffer, size_t size);
-  
+
   size_t SerializedLength() const;
   bool SerializeTo(std::function<bool(const char*, size_t)> serializer);
-  
+
   void Append(DTXPrimitiveValue&& item) {
     items_.emplace_back(std::forward<DTXPrimitiveValue>(item));
   }
-  
-  DTXPrimitiveValue& At(size_t index) {
-    return items_.at(index);
-  }
-  
-  DTXPrimitiveValue& operator[](size_t index) {
-    return items_[index];
-  }
-  
+
+  DTXPrimitiveValue& At(size_t index) { return items_.at(index); }
+
+  DTXPrimitiveValue& operator[](size_t index) { return items_[index]; }
+
   size_t Size() const { return items_.size(); }
-  
+
   void Dump(bool dumphex = true) const;
-  
+
  private:
   std::vector<DTXPrimitiveValue> items_;
   bool as_dict_ = false;
 };  // class DTXPrimitiveArray
 
-// Actually we didn't implement the DTXPrimitiveDictionary, but implement the DTXPrimitiveArray instead
-// and use it as the DTXPrimitiveDictionary, 'cause they both have very similar memory layouts.
-// for now all DTXPrimitiveDictionary we've seen only have empty keys, so we just ignore them.
+// Actually we didn't implement the DTXPrimitiveDictionary, but implement the DTXPrimitiveArray
+// instead and use it as the DTXPrimitiveDictionary, 'cause they both have very similar memory
+// layouts. for now all DTXPrimitiveDictionary we've seen only have empty keys, so we just ignore
+// them.
 //
 // DTXPrimitiveDictionary Memory layout:
 // |-----------------------------------------|

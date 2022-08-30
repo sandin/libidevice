@@ -1,24 +1,28 @@
 #include "idevice/dtxprimitivearray.h"
 
-#include <cassert> // assert
-#include <algorithm> // std::max
+#include <algorithm>  // std::max
+#include <cassert>    // assert
 
-#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN, IDEVICE_ASSERT
+#include "idevice/macro_def.h"  // IDEVICE_MEM_ALIGN, IDEVICE_ASSERT
 
 using namespace idevice;
 
 constexpr size_t kDTXPrimitiveArrayDefaultSize = 0x200;
 constexpr size_t kDTXPrimitiveArrayHeaderSize = 0x10;
-constexpr size_t kDTXPrimitiveArrayCapacityAlignment = kDTXPrimitiveArrayDefaultSize + kDTXPrimitiveArrayHeaderSize; // 0x210
-constexpr size_t kDTXPrimitiveArrayDefaultCapacity = kDTXPrimitiveArrayDefaultSize - kDTXPrimitiveArrayHeaderSize; // 0x1F0, F0 01 00 00 00 00 00 00
+constexpr size_t kDTXPrimitiveArrayCapacityAlignment =
+    kDTXPrimitiveArrayDefaultSize + kDTXPrimitiveArrayHeaderSize;  // 0x210
+constexpr size_t kDTXPrimitiveArrayDefaultCapacity =
+    kDTXPrimitiveArrayDefaultSize - kDTXPrimitiveArrayHeaderSize;  // 0x1F0, F0 01 00 00 00 00 00 00
 
 // static
-std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* buffer, size_t buffer_size) {
+std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* buffer,
+                                                                  size_t buffer_size) {
   if (!buffer || buffer_size < kDTXPrimitiveArrayHeaderSize) {
-    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n", buffer, buffer_size);
+    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr.\n",
+           buffer, buffer_size);
     return nullptr;
   }
-  
+  // clang-format off
   // DTXPrimitiveArray Memory Layout:
   // |-----------------------------------------------------------|
   // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
@@ -34,21 +38,27 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
   // |  item_type=6 | 64bit float                 | ...          | // e.g.: element of type kFloat64(double)
   // |  ...                                                      |
   // |-----------------------------------------------------------|
-  uint64_t capacity = *(uint64_t*)(buffer); // capacity represents how many bytes of DTXPrimitiveArray struct(include the size of the DTXPrimitiveArrayHeader)
-  uint64_t size = *(uint64_t*)(buffer + 0x8); // size represents how many bytes of items
+  // clang-format on
+  uint64_t capacity =
+      *(uint64_t*)(buffer);  // capacity represents how many bytes of DTXPrimitiveArray
+                             // struct(include the size of the DTXPrimitiveArrayHeader)
+  uint64_t size = *(uint64_t*)(buffer + 0x8);  // size represents how many bytes of items
   if (size + kDTXPrimitiveArrayHeaderSize != buffer_size) {
-    printf("Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning nullptr(length=%llu).\n", buffer, buffer_size, size);
+    printf(
+        "Error: DTXPrimitiveArray unexpected bytes at %p of length %zu, returning "
+        "nullptr(length=%llu).\n",
+        buffer, buffer_size, size);
     return nullptr;
   }
-  
+
   std::unique_ptr<DTXPrimitiveArray> array = std::make_unique<DTXPrimitiveArray>();
-  
+
   char* ptr = const_cast<char*>(buffer);
   size_t offset = kDTXPrimitiveArrayHeaderSize;
   while (offset < buffer_size) {
     uint32_t type = *(uint32_t*)(ptr + offset);
     offset += sizeof(uint32_t);
-    
+
     uint32_t length = 0;
     switch (type) {
       case DTXPrimitiveValue::kString: {
@@ -56,7 +66,7 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
         length = *(uint32_t*)(ptr + offset);
         offset += sizeof(uint32_t);
         // str
-        const char* str = ptr + offset; // without ending \0
+        const char* str = ptr + offset;  // without ending \0
         array->Append(DTXPrimitiveValue(str, length));
         offset += length;
         break;
@@ -101,43 +111,48 @@ std::unique_ptr<DTXPrimitiveArray> DTXPrimitiveArray::Deserialize(const char* bu
         break;
       }
       case DTXPrimitiveValue::kEmptyKey: {
-        break; // empty dictionary key, the keys are empty and we ignore them
+        break;  // empty dictionary key, the keys are empty and we ignore them
       }
       default:
         IDEVICE_ASSERT(false, "unknown type %d\n", type);
         break;
     }
   }
-  
+
   return array;
 }
 
 size_t DTXPrimitiveArray::SerializedLength() const {
-  size_t length = kDTXPrimitiveArrayHeaderSize;
-  for (const auto& item : items_) {
-    if (item.GetType() == DTXPrimitiveValue::kNull) {
-      continue;
+  if (!items_.empty()) {
+    size_t length = kDTXPrimitiveArrayHeaderSize;
+    for (const auto& item : items_) {
+      if (item.GetType() == DTXPrimitiveValue::kNull) {
+        continue;
+      }
+
+      if (as_dict_) {
+        length += sizeof(uint32_t);  // size of kEmptyKey type
+      }
+      length += sizeof(uint32_t);  // size of type
+      if (item.GetType() == DTXPrimitiveValue::kBuffer ||
+          item.GetType() == DTXPrimitiveValue::kString) {
+        length += sizeof(uint32_t);  // size of value payload
+      }
+      length += item.Size();  // size of value
     }
-    
-    if (as_dict_) {
-      length += sizeof(uint32_t); // size of kEmptyKey type
-    }
-    length += sizeof(uint32_t); // size of type
-    if (item.GetType() == DTXPrimitiveValue::kBuffer || item.GetType() == DTXPrimitiveValue::kString) {
-      length += sizeof(uint32_t); // size of value payload
-    }
-    length += item.Size();      // size of value
+    return length;
   }
-  return length;
+  return 0;
 }
 
 bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
   // Serialize DTXPrimitiveArrayHeader
   size_t size = SerializedLength() - kDTXPrimitiveArrayHeaderSize;
-  uint64_t capacity = IDEVICE_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size), kDTXPrimitiveArrayCapacityAlignment);
+  uint64_t capacity = IDEVICE_MEM_ALIGN(std::max(kDTXPrimitiveArrayDefaultCapacity, size),
+                                        kDTXPrimitiveArrayCapacityAlignment);
   serializer(reinterpret_cast<const char*>(&capacity), sizeof(uint64_t));
   serializer(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
-  
+
   const uint32_t empty_key_type = DTXPrimitiveValue::kEmptyKey;
   // Serialize items
   for (auto& item : items_) {
@@ -145,17 +160,17 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
     if (type == DTXPrimitiveValue::kNull) {
       continue;
     }
-    
+
     if (as_dict_) {
       // insert an empty key for DTXPrimitiveDictionary
       serializer(reinterpret_cast<const char*>(&empty_key_type), sizeof(uint32_t));
     }
-    
+
     serializer(reinterpret_cast<const char*>(&type), sizeof(uint32_t));
     if (item.Size() == 0) {
       continue;
     }
-    
+
     switch (type) {
       case DTXPrimitiveValue::kString: {
         // length
@@ -184,14 +199,12 @@ bool DTXPrimitiveArray::SerializeTo(std::function<bool(const char*, size_t)> ser
         break;
       }
       case DTXPrimitiveValue::kEmptyKey: {
-        break; // empty dictionary key, the keys are empty and we ignore them
+        break;  // empty dictionary key, the keys are empty and we ignore them
       }
       default:
         IDEVICE_ASSERT(false, "unknown type %d\n", type);
         break;
     }
-    
-    
   }
   return true;
 }

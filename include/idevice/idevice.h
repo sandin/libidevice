@@ -53,4 +53,4 @@ static inline void hexdump(void* addr, int len, int offset) {
 
 }  // namespace idevice
 
-#endif // IDEVICE_IDEVICE_H
+#endif  // IDEVICE_IDEVICE_H

@@ -11,8 +11,9 @@ constexpr char kInstrumentServiceName[] = "com.apple.instruments.remoteserver";
 constexpr char kInstrumentSecureServiceName[] =
     "com.apple.instruments.remoteserver.DVTSecureSocketProxy";
 
-IService::Result InstrumentService::NewClient(idevice_t device, lockdownd_service_descriptor_t service,
-                                    InstrumentClient* client) {
+IService::Result InstrumentService::NewClient(idevice_t device,
+                                              lockdownd_service_descriptor_t service,
+                                              InstrumentClient* client) {
   service_client_t service_client = nullptr;
   if (!device || !service || service->port == 0 || !client || *client) {
     return ResultCode::kInvalidArg;
@@ -33,21 +34,23 @@ IService::Result InstrumentService::NewClient(idevice_t device, lockdownd_servic
 IService::Result InstrumentService::Connect(idevice_t device) {
   device_ = device;
   int32_t err = 0;
-  
+
   // with ssl
   service_error_t ret = service_client_factory_start_service(
       device_, kInstrumentSecureServiceName, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
-  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n", kInstrumentSecureServiceName, ret);
+  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n",
+                kInstrumentSecureServiceName, ret);
   if (ret == kResultOk) {
     return ResultCode::kOk;
   }
-  
+
   // fallback, without ssl
   ret = service_client_factory_start_service(
       device_, kInstrumentServiceName, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
-  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n", kInstrumentSecureServiceName, ret);
+  IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n",
+                kInstrumentSecureServiceName, ret);
   return ret;
 }
 
@@ -68,6 +71,7 @@ IService::Result InstrumentService::Receive(char* buffer, uint32_t size, uint32_
   return service_receive(client_, buffer, size, received);
 }
 
-IService::Result InstrumentService::ReceiveWithTimeout(char* buffer, uint32_t size, uint32_t timeout, uint32_t* received) {
+IService::Result InstrumentService::ReceiveWithTimeout(char* buffer, uint32_t size,
+                                                       uint32_t timeout, uint32_t* received) {
   return service_receive_with_timeout(client_, buffer, size, received, timeout);
 }

@@ -2,25 +2,24 @@
 #define IDEVICE_BYTE_BUFFER_H
 
 #include <cstdint>
+#include <memory>  // std::unique_ptr
 #include <vector>
-#include <memory> // std::unique_ptr
 
-#include "idevice/macro_def.h" // IDEVICE_MEM_ALIGN, IDEVICE_DISALLOW_COPY_AND_ASSIGN
+#include "idevice/macro_def.h"  // IDEVICE_MEM_ALIGN, IDEVICE_DISALLOW_COPY_AND_ASSIGN
 
 namespace idevice {
 
 class BufferMemory {
  public:
-  BufferMemory() {
-  }
+  BufferMemory() {}
   ~BufferMemory() {
     if (buffer_) {
       free(buffer_);
     }
   }
-  
+
   IDEVICE_DISALLOW_COPY_AND_ASSIGN(BufferMemory);
-  
+
   char* Allocate(size_t req_size) {
     if (capacity_ - size_ < req_size) {
       if (!Reserve(size_ + req_size)) {
@@ -28,19 +27,17 @@ class BufferMemory {
         return nullptr;
       }
     }
-    
+
     char* ptr = buffer_ + size_;
     size_ += req_size;
     return ptr;
   }
-  
-  char* GetPtr(size_t offset) {
-    return buffer_ + offset;
-  }
-  
+
+  char* GetPtr(size_t offset) { return buffer_ + offset; }
+
   size_t Size() const { return size_; }
   void SetSize(size_t size) { size_ = size; }
-  
+
  private:
   bool Reserve(size_t capacity) {
     size_t new_capacity = IDEVICE_MEM_ALIGN(capacity, 128);
@@ -55,7 +52,7 @@ class BufferMemory {
     }
     return false;
   }
-  
+
   char* buffer_ = nullptr;
   size_t size_ = 0;
   size_t capacity_ = 0;
@@ -68,7 +65,7 @@ class ByteBuffer {
  public:
   using DataType = uint8_t;
   using DataArray = std::vector<DataType>;
-  
+
   /**
    * constructor
    * @param reserve_size reserve size
@@ -77,25 +74,23 @@ class ByteBuffer {
     buffer_->reserve(reserve_size);
   };
   ~ByteBuffer() {}
-  
+
   IDEVICE_DISALLOW_COPY_AND_ASSIGN(ByteBuffer);
-  
+
   // allow move and assign
   ByteBuffer(ByteBuffer&& other) : buffer_(std::move(other.buffer_)) {}
   ByteBuffer& operator=(ByteBuffer&& other) {
     buffer_ = std::unique_ptr<DataArray>(std::move(other.buffer_));
     return *this;
   }
-  
+
   /**
    * get a mutable pointer to the buffer
    * @param offset offset from head
    * @return the pointer to the buffer
    */
-  void* GetBuffer(size_t offset) {
-    return reinterpret_cast<uint8_t*>(buffer_->data()) + offset;
-  }
-  
+  void* GetBuffer(size_t offset) { return reinterpret_cast<uint8_t*>(buffer_->data()) + offset; }
+
   /**
    * get unmutable pointer to the buffer
    * @param offset offset from head
@@ -104,7 +99,7 @@ class ByteBuffer {
   const void* GetReadOnlyBuffer(size_t offset) {
     return reinterpret_cast<const uint8_t*>(buffer_->data()) + offset;
   }
-  
+
   /**
    * read(copy) some data from the buffer
    * @param buffer the dest buffer
@@ -133,7 +128,7 @@ class ByteBuffer {
     }
     return true;
   }
-  
+
   /**
    * write(copy) some data to the specified offset position of the buffer
    * @param buffer the src buffer
@@ -159,7 +154,7 @@ class ByteBuffer {
     }
     return true;
   }
-  
+
   /**
    * write(copy) some data to the end of the buffer
    * @param buffer the src buffer
@@ -170,7 +165,7 @@ class ByteBuffer {
     size_t size_written;
     return Write(buffer, buffer_size, Size(), &size_written) && buffer_size == size_written;
   }
-  
+
   /**
    * resize the buffer
    * @param new_size the new size
@@ -180,22 +175,20 @@ class ByteBuffer {
     buffer_->resize(new_size);
     return true;
   }
-  
+
   /**
    * get the current size of buffer
    * @return the size
    */
-  size_t Size() const {
-    return buffer_->size();
-  }
+  size_t Size() const { return buffer_->size(); }
 
  private:
   uint32_t alignment_;
   std::unique_ptr<DataArray> buffer_;
-}; // class ByteBuffer
+};  // class ByteBuffer
 
 }  // namespace idevice
 
 #include "idevice/macro_undef.h"
 
-#endif // IDEVICE_BYTE_BUFFER_H
+#endif  // IDEVICE_BYTE_BUFFER_H

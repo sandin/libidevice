@@ -1,8 +1,8 @@
 #include "idevice/dtxmessage.h"
 
-#include <string>
 #include <fstream>
-#include <memory> // std::make_unique
+#include <memory>  // std::make_unique
+#include <string>
 
 #include "idevice/macro_def.h"
 #include "nskeyedarchiver/nskeyedarchiver.hpp"
@@ -10,20 +10,29 @@
 
 using namespace idevice;
 
-static const int kDTXMessagePayloadHeaderSize = 0x10;
+static constexpr int kDTXMessagePayloadHeaderSize = 0x10;
 
-static inline void write_buffer_to_file(std::string filename, const char* buffer, uint64_t size)
-{
-    std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary);
-    file.write(buffer, size);
-    file.close();
+static inline void write_buffer_to_file(std::string filename, const char* buffer, uint64_t size) {
+  std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary);
+  file.write(buffer, size);
+  file.close();
 }
 
 // static
-std::shared_ptr<DTXMessage> DTXMessage::Create(const char* selector) {
+std::shared_ptr<DTXMessage> DTXMessage::CreateWithSelector(const char* selector) {
   std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>();
   message->SetMessageType(kSelectorMessageType);
   message->SetPayloadObject(std::make_unique<nskeyedarchiver::KAValue>(selector) /* as NSString */);
+  message->SetAuxiliary(std::make_unique<DTXPrimitiveArray>());
+  return message;
+}
+
+// static
+std::shared_ptr<DTXMessage> DTXMessage::CreateWithBuffer(const char* buffer, size_t size,
+                                                         bool should_copy) {
+  std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>();
+  message->SetMessageType(kDataMessageType);
+  message->SetPayloadBuffer(const_cast<char*>(buffer), size, should_copy);
   message->SetAuxiliary(std::make_unique<DTXPrimitiveArray>());
   return message;
 }
@@ -36,7 +45,8 @@ std::shared_ptr<DTXMessage> DTXMessage::Deserialize(const char* bytes, size_t si
   std::string filename = std::string("dtxmessage_") + std::to_string(count) + ".bin";
   write_buffer_to_file(filename, bytes, size);
   */
-  
+
+  // clang-format off
   // DTXMessagePayload Memory Layout:
   // |-----------------------------------------------------------|
   // |  0  1  2  3  |  4  5  6  7  |  8  9  A  B  |  C  D  E  F  |
@@ -47,6 +57,7 @@ std::shared_ptr<DTXMessage> DTXMessage::Deserialize(const char* bytes, size_t si
   // |  payload   (size=total_len - aux_len)                     | // `NSKeyedArchiver selector`, name of the function(or return type)
   // |  ...                                                      |
   // |-----------------------------------------------------------|
+  // clang-format on
   uint32_t message_type = *(uint32_t*)(bytes);
   uint32_t auxiliary_length = *(uint32_t*)(bytes + 0x04);
   uint64_t total_length = *(uint64_t*)(bytes + 0x08);
@@ -57,57 +68,60 @@ std::shared_ptr<DTXMessage> DTXMessage::Deserialize(const char* bytes, size_t si
   printf("total_length: %llu\n", total_length);
   printf("payload_length: %llu\n", payload_length);
 #endif
-  
+
   const char* auxiliary_ptr = bytes + kDTXMessagePayloadHeaderSize;
   const char* payload_ptr = bytes + kDTXMessagePayloadHeaderSize + auxiliary_length;
-  
+
   std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>(message_type);
   if (auxiliary_length > 0) {
-    message->SetAuxiliary(DTXPrimitiveArray::Deserialize(bytes + kDTXMessagePayloadHeaderSize, auxiliary_length));
+    message->SetAuxiliary(
+        DTXPrimitiveArray::Deserialize(bytes + kDTXMessagePayloadHeaderSize, auxiliary_length));
   }
   if (payload_length > 0) {
     message->SetPayloadBuffer(const_cast<char*>(payload_ptr), payload_length, true);
-    nskeyedarchiver::KAValue value = nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(payload_ptr, payload_length);
+    nskeyedarchiver::KAValue value =
+        nskeyedarchiver::NSKeyedUnarchiver::UnarchiveTopLevelObjectWithData(payload_ptr,
+                                                                            payload_length);
     message->SetPayloadObject(std::make_unique<nskeyedarchiver::KAValue>(std::move(value)));
   }
   if (message_type == 7) {
-    printf("TODO: DecompressedData(), use zlib\n"); // TODO
+    printf("TODO: DecompressedData(), use zlib\n");  // TODO
   }
-  
+
   message->SetDeserialized(true);
   return message;
 }
 
 size_t DTXMessage::SerializedLength() {
   size_t length = kDTXMessagePayloadHeaderSize;
-  
+
   MaybeSerializeAuxiliaryObjects();
   length += auxiliary_->SerializedLength();
-  
+
   MaybeSerializePayloadObject();
   length += payload_size_;
-  
+
   return length;
 }
 
 bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer) {
   // Serialize DTXMessagePayloadHeader
   serializer(reinterpret_cast<const char*>(&message_type_), sizeof(uint32_t));
-  
+
   MaybeSerializeAuxiliaryObjects();
   uint32_t auxiliary_length = auxiliary_->SerializedLength();
   serializer(reinterpret_cast<const char*>(&auxiliary_length), sizeof(uint32_t));
-  
+
   MaybeSerializePayloadObject();
   uint64_t total_length = auxiliary_length + payload_size_;
   serializer(reinterpret_cast<const char*>(&total_length), sizeof(uint64_t));
-  
+
 #if IDEVICE_DEBUG
   printf("message_type: %d\n", message_type_);
   printf("auxiliary_length: %d\n", auxiliary_length);
   printf("total_length: %llu\n", total_length);
 #endif
-  
+
   // Serialize auxiliary
   if (auxiliary_length > 0) {
     if (!auxiliary_->SerializeTo(serializer)) {
@@ -125,24 +139,27 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
 void DTXMessage::MaybeSerializePayloadObject() {
   if (payload_buffer_ == nullptr) {
     payload_size_ = 0;
-    nskeyedarchiver::NSKeyedArchiver::ArchivedData(*payload_object_, &payload_buffer_, &payload_size_,
-                                                 nskeyedarchiver::NSKeyedArchiver::OutputFormat::Binary);
+    nskeyedarchiver::NSKeyedArchiver::ArchivedData(
+        *payload_object_, &payload_buffer_, &payload_size_,
+        nskeyedarchiver::NSKeyedArchiver::OutputFormat::Binary);
   }
 }
 
 void DTXMessage::MaybeSerializeAuxiliaryObjects() {
-  // At first we just save objects of auxiliary in the `auxiliary_objects_` map, and place a placeholder inside the `auxiliary_` array.
-  // but when we want to serialize all auxiliaries of the DTXMessage, we have to replace these placeholders with serialized bytes first.
+  // At first we just save objects of auxiliary in the `auxiliary_objects_` map, and place a
+  // placeholder inside the `auxiliary_` array. but when we want to serialize all auxiliaries of the
+  // DTXMessage, we have to replace these placeholders with serialized bytes first.
   if (auxiliary_objects_.size() > 0) {
-    for (const auto &it : auxiliary_objects_) {
+    for (const auto& it : auxiliary_objects_) {
       size_t index = it.first;
       const nskeyedarchiver::KAValue& object = it.second;
       char* buffer = nullptr;
       size_t buffer_size = 0;
       // serialize object to bytes
-      nskeyedarchiver::NSKeyedArchiver::ArchivedData(object, &buffer, &buffer_size,
-                                                     nskeyedarchiver::NSKeyedArchiver::OutputFormat::Binary);
-      (*auxiliary_)[index] = DTXPrimitiveValue(buffer, buffer_size, false /* move the buffer pointer, do not copy it */);
+      nskeyedarchiver::NSKeyedArchiver::ArchivedData(
+          object, &buffer, &buffer_size, nskeyedarchiver::NSKeyedArchiver::OutputFormat::Binary);
+      (*auxiliary_)[index] = DTXPrimitiveValue(buffer, buffer_size,
+                                               false /* move the buffer pointer, do not copy it */);
     }
     auxiliary_objects_.clear();
   }
@@ -150,12 +167,14 @@ void DTXMessage::MaybeSerializeAuxiliaryObjects() {
 
 void DTXMessage::SetPayloadBuffer(char* buffer, size_t size, bool should_copy) {
   payload_size_ = size;
-  
+
   if (should_copy) {
     payload_buffer_ = static_cast<char*>(malloc(size));
     memcpy(payload_buffer_, buffer, size);
+    should_free_payload_buffer_ = true;
   } else {
     payload_buffer_ = buffer;
+    should_free_payload_buffer_ = false;
   }
 }
 

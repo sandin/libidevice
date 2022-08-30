@@ -1,22 +1,22 @@
 #include <sys/stat.h>  // stat
-#include <cstdio>   // fopen
-#include <cstring>  // strcmp
+
+#include <algorithm>  // std::sort
+#include <cstdio>     // fopen
+#include <cstring>    // strcmp
 #include <iostream>
 #include <string>
-#include <utility> // std::pair
-#include <vector>
 #include <unordered_map>
-#include <algorithm> // std::sort
+#include <utility>  // std::pair
+#include <vector>
 
 #include "idevice/dtxmessageparser.h"
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
-#define USAGE                                              \
+#define USAGE                                                     \
   "Usage: idevice_decoder [options] <dtx_message_dump_files..>\n" \
-  "  options:\n" \
-  "    `--hex`: dump data as hex string\n" \
+  "  options:\n"                                                  \
+  "    `--hex`: dump data as hex string\n"                        \
   "    `--limit [count]`: parse messages limit number pre file\n"
-
 
 using namespace idevice;
 using Args = std::pair<std::vector<std::string>, std::unordered_map<std::string, std::string>>;
@@ -59,13 +59,14 @@ static int get_flag_as_int(const Args& args, const std::string& key, int def_val
   return def_val;
 }
 
-std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::string& filename, int limit, bool dumphex) {
+std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::string& filename,
+                                                                 int limit, bool dumphex) {
   FILE* f = fopen(filename.c_str(), "rb");
   if (!f) {
     printf("can not open `%s` file.\n", filename.c_str());
-    return std::vector<std::shared_ptr<DTXMessage>>(); // empty vector
+    return std::vector<std::shared_ptr<DTXMessage>>();  // empty vector
   }
-  
+
   DTXMessageParser parser;
 
   size_t buffer_size = 8 * 1024;
@@ -76,13 +77,13 @@ std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::stri
       printf("reach the limit: %d\n", limit);
       break;
     }
-    
+
     actual = fread(buffer, 1, buffer_size, f);
     if (actual <= 0) {
       printf("EOF\n");
       break;
     }
-    
+
     bool ret = parser.ParseIncomingBytes(buffer, actual);
     if (!ret) {
       printf("ret=%d\n", ret);
@@ -91,33 +92,33 @@ std::vector<std::shared_ptr<DTXMessage>> decode_dtxmsg_dump_file(const std::stri
   }
   free(buffer);
   fclose(f);
-  
-  return parser.PopAllParsedMessages(); // copy all pointers
+
+  return parser.PopAllParsedMessages();  // copy all pointers
 }
 
 int decode_dtxmsg_dump_files(const std::vector<std::string>& filenames, int limit, bool dumphex) {
   std::vector<std::shared_ptr<DTXMessage>> messages;
   for (const auto& filename : filenames) {
     auto subvec = decode_dtxmsg_dump_file(filename, limit, dumphex);
-    messages.insert(messages.end(), subvec.begin(), subvec.end()); // append_all
+    messages.insert(messages.end(), subvec.begin(), subvec.end());  // append_all
   }
-  
+
   std::sort(messages.begin(), messages.end(), [](const auto& a, const auto& b) {
     // order by msgid and cidx
-    if (a ->Identifier() != b->Identifier()) {
+    if (a->Identifier() != b->Identifier()) {
       return a->Identifier() < b->Identifier();
     } else {
       return a->ConversationIndex() < b->ConversationIndex();
     }
   });
-  
+
   size_t msg_count = 0;
   for (const auto& msg : messages) {
     if (limit != -1 && msg_count >= limit) {
       printf("reach the limit: %d\n", limit);
       break;
     }
-    
+
     printf("msg_id: %d\n", msg->Identifier());
     msg->Dump(dumphex);
     msg_count++;

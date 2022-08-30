@@ -1,5 +1,5 @@
-#ifdef IDEVICE_MACRO_DEF_H // make sure the "macro_def.h" file has been imported,
-#undef IDEVICE_MACRO_DEF_H // and undo everything that was done in the "macro_def.h" file
+#ifdef IDEVICE_MACRO_DEF_H  // make sure the "macro_def.h" file has been imported,
+#undef IDEVICE_MACRO_DEF_H  // and undo everything that was done in the "macro_def.h" file
 
 // DEBUG
 #undef IDEVICE_DEBUG
@@ -28,4 +28,4 @@
 #undef IDEVICE_DTXMESSAGE_IDENTIFIER
 #undef IDEVICE_SETUP_DTXMESSAGE_WITH_HREADER
 
-#endif // IDEVICE_MACRO_DEF_H
+#endif  // IDEVICE_MACRO_DEF_H

@@ -1,9 +1,11 @@
 /**
  * NOTE: there two rules to import this file:
  * 1. IT IS OK to import this file in any "*.cpp" files.
- * 2. TRY NOT TO import this file in any "*.h/hpp" header files. If you have to do it,  please import the "macro_undef.h" file
- *   at the end of the header file to avoid bringing these macro definitions to other files.
+ * 2. TRY NOT TO import this file in any "*.h/hpp" header files. If you have to do it,  please
+ * import the "macro_undef.h" file at the end of the header file to avoid bringing these macro
+ * definitions to other files.
  */
+// clang-format off
 #ifndef IDEVICE_MACRO_DEF_H
 #define IDEVICE_MACRO_DEF_H
 
@@ -91,3 +93,4 @@
   message->SetExpectsReply(header.expects_reply != 0); \
 
 #endif // IDEVICE_MACRO_SCOPE_H
+// clang-format on

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "idevice/idevice.h"
+#include "libimobiledevice/libimobiledevice.h"
 
 namespace idevice {
 
@@ -11,13 +11,13 @@ namespace idevice {
 class IService {
  public:
   using Result = uint32_t;
-  
+
   virtual ~IService() {}
-  
+
   virtual Result Connect(idevice_t device) = 0;
   virtual Result Disconnect() = 0;
 };
 
 }  // namespace idevice
 
-#endif // IDEVICE_ISERVICE_H
+#endif  // IDEVICE_ISERVICE_H
