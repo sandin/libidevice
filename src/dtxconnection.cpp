@@ -1,6 +1,7 @@
 #include "idevice/dtxconnection.h"
 
 #include <algorithm>  // std::max
+#include <cstdlib>    // std::abs
 #include <future>     // std::promise
 
 #include "idevice/macro_def.h"  // IDEVICE_START_THREAD, IDEVICE_STOP_THREAD, IDEVICE_ATOMIC_SET_MAX, IDEVICE_DTXMESSAGE_IDENTIFIER
@@ -304,22 +305,20 @@ void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
     return;
   }
 
-  auto found = channels_by_code_.find(channel_code);
+  auto found = channels_by_code_.find(std::abs(static_cast<int32_t>(channel_code)));
   if (found != channels_by_code_.end()) {
     std::shared_ptr<DTXChannel> channel = found->second;
     IDEVICE_LOG_D("route the message(%d|%d) to the channel %s(%d)\n", channel_code, msg_identifier,
                   channel->Label().c_str(), channel->ChannelIdentifier());
-    /* TODO:
-    auto callback = channel.GetMessageHandler();
+    auto callback = channel->MessageHandler();
     if (callback != nullptr) {
       callback(msg);
+      return;
     }
-    */
-  } else {
-    IDEVICE_LOG_I("dropped message (no message handler). channel code: %d, msg identifier: %d\n",
-                  channel_code, msg_identifier);
-#if IDEVICE_DEBUG
-    msg->Dump();
-#endif
   }
+  
+  IDEVICE_LOG_I("dropped message (no message handler). channel code: %d, msg identifier: %d\n", channel_code, msg_identifier);
+#if IDEVICE_DEBUG
+  msg->Dump();
+#endif
 }

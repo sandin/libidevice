@@ -162,7 +162,7 @@ output:
 }
 ```
 
-   
+​              
 
 #### network_information
 
@@ -206,7 +206,66 @@ output:
 ]
 ```
 
-​                          
+​             
+
+#### execname_for_pid
+
+Get the binary executable name of the pid:
+
+```bash
+$ idevice instruments execname_for_pid --pid 1834
+```
+
+output:
+
+```json
+"/private/var/containers/Bundle/Application/36430233-EAA7-40DC-A9B8-25AD189342E6/WeChat.app/WeChat"
+```
+
+​                 
+
+#### graphics_opengl
+
+Get the profile data of graphics opengl in real-time:
+
+```bash
+$ idevice instruments graphics_opengl
+```
+
+output:
+
+```json
+{
+    "Alloc system memory": 556269568,
+    "Allocated PB Size": 3145728,
+    "CoreAnimationFramesPerSecond": 0,
+    "Device Utilization %": 0,
+    "IOGLBundleName": "Built-In",
+    "In use system memory": 16449536,
+    "Renderer Utilization %": 0,
+    "SplitSceneCount": 0,
+    "TiledSceneBytes": 0,
+    "Tiler Utilization %": 0,
+    "XRVideoCardRunTimeStamp": 9164067,
+    "recoveryCount": 0
+}
+{
+    "Alloc system memory": 556269568,
+    "Allocated PB Size": 3145728,
+    "CoreAnimationFramesPerSecond": 0,
+    "Device Utilization %": 0,
+    "IOGLBundleName": "Built-In",
+    "In use system memory": 16449536,
+    "Renderer Utilization %": 0,
+    "SplitSceneCount": 0,
+    "TiledSceneBytes": 0,
+    "Tiler Utilization %": 0,
+    "XRVideoCardRunTimeStamp": 10180084,
+    "recoveryCount": 0
+}
+```
+
+​                                                             
 
 #### decode
 

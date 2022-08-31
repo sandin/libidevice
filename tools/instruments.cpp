@@ -8,6 +8,7 @@
 #include "idevice/dtxtransport.h"
 #include "libimobiledevice/libimobiledevice.h"
 #include "nskeyedarchiver/scope.hpp"
+#include "nskeyedarchiver/kavalue.hpp"
 
 using namespace idevice;
 
@@ -57,6 +58,18 @@ int mach_time_info(DTXConnection* connection) {
   return 0;
 }
 
+int execname_for_pid(DTXConnection* connection, uint64_t pid) {
+  printf("execnameForPid:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+  auto message = DTXMessage::CreateWithSelector("execnameForPid:");
+  message->AppendAuxiliary(nskeyedarchiver::KAValue(pid));
+  auto response = channel->SendMessageSync(message);
+  printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
+  return 0;
+}
+
 int request_device_gpu_info(DTXConnection* connection) {
   printf("requestDeviceGPUInfo:\n");
   auto channel =
@@ -64,6 +77,61 @@ int request_device_gpu_info(DTXConnection* connection) {
   auto message = DTXMessage::CreateWithSelector("requestDeviceGPUInfo");
   auto response = channel->SendMessageSync(message);
   printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
+  return 0;
+}
+
+int core_profile_session_tap(DTXConnection* connection) {
+/*
+  printf("coreprofilesessiontap:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.coreprofilesessiontap");
+  TODO: setConfigs:
+  auto message1 = DTXMessage::CreateWithSelector("setConfigs:");
+  auto response1 = channel->SendMessageSync(message);
+  printf("%s\n", response1->PayloadObject()->ToJson().c_str());
+ 
+  auto message2 = DTXMessage::CreateWithSelector("start");
+  auto response2 = channel->SendMessageSync(message);
+  printf("%s\n", response2->PayloadObject()->ToJson().c_str());
+ 
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+  }
+ 
+  channel->Cancel();
+*/
+  printf("Unsupported method.\n");
+  return 0;
+}
+
+int graphics_opengl(DTXConnection* connection) {
+  printf("graphics_opengl:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.graphics.opengl");
+  
+  {
+    auto message = DTXMessage::CreateWithSelector("setSamplingRate:");
+    message->AppendAuxiliary(nskeyedarchiver::KAValue(10));
+    channel->SendMessageSync(message);
+  }
+  {
+    auto message = DTXMessage::CreateWithSelector("startSamplingAtTimeInterval:processIdentifier:");
+    message->AppendAuxiliary(nskeyedarchiver::KAValue(0));
+    message->AppendAuxiliary(nskeyedarchiver::KAValue(0));
+    channel->SendMessageSync(message);
+  }
+  
+  channel->SetMessageHandler([=](std::shared_ptr<DTXMessage> msg) {
+    if (msg->PayloadObject()) {
+      printf("%s\n", msg->PayloadObject()->ToJson().c_str());
+    }
+  });
+  
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+  }
+  
   channel->Cancel();
   return 0;
 }
@@ -117,6 +185,13 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
     ret = network_information(connection);
   } else if (command == "mach_time_info") {
     ret = mach_time_info(connection);
+  } else if (command == "execname_for_pid") {
+    uint64_t pid = idevice::tools::get_flag_as_int(args, "pid", 0);
+    ret = execname_for_pid(connection, pid);
+  } else if (command == "core_profile_session_tap") {
+    ret = core_profile_session_tap(connection);
+  } else if (command == "graphics_opengl") {
+    ret = graphics_opengl(connection);
   } else {
     printf("unknown command: %s\n", command.c_str());
   }

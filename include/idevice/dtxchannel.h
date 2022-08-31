@@ -19,6 +19,11 @@ class DTXChannel /*: public DTXMessenger */ {
                                               uint32_t timeout_ms = -1);
   void SendMessageAsync(std::shared_ptr<DTXMessage> msg, DTXMessenger::ReplyHandler callback);
   
+  const DTXMessenger::ReplyHandler& MessageHandler() const { return message_handler_; };
+  void SetMessageHandler(DTXMessenger::ReplyHandler&& handler) {
+    message_handler_ = std::move(handler);
+  };
+  
   void Cancel();
   bool IsCanceled() const { return canceled_; }
 
@@ -30,6 +35,7 @@ class DTXChannel /*: public DTXMessenger */ {
   std::string label_ = "";
   uint32_t channel_identifier_ = 0;
   DTXMessenger* connection_ = nullptr;
+  DTXMessenger::ReplyHandler message_handler_;
 
 };  // class DTXChannel
 
