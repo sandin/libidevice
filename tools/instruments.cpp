@@ -20,6 +20,40 @@ int running_processes(DTXConnection* connection) {
   auto message = DTXMessage::CreateWithSelector("runningProcesses");
   auto response = channel->SendMessageSync(message);
   printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
+  return 0;
+}
+
+int hardware_information(DTXConnection* connection) {
+  printf("hardwareInformation:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+  auto message = DTXMessage::CreateWithSelector("hardwareInformation");
+  auto response = channel->SendMessageSync(message);
+  printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
+  return 0;
+}
+
+int network_information(DTXConnection* connection) {
+  printf("networkInformation:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+  auto message = DTXMessage::CreateWithSelector("networkInformation");
+  auto response = channel->SendMessageSync(message);
+  printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
+  return 0;
+}
+
+int mach_time_info(DTXConnection* connection) {
+  printf("machTimeInfo:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+  auto message = DTXMessage::CreateWithSelector("machTimeInfo");
+  auto response = channel->SendMessageSync(message);
+  printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
   return 0;
 }
 
@@ -30,6 +64,7 @@ int request_device_gpu_info(DTXConnection* connection) {
   auto message = DTXMessage::CreateWithSelector("requestDeviceGPUInfo");
   auto response = channel->SendMessageSync(message);
   printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  channel->Cancel();
   return 0;
 }
 
@@ -68,14 +103,26 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
     printf("Can not connect to the device(uuid: %s).\n", udid.c_str());
     return -1;
   }
-  std::this_thread::sleep_for(std::chrono::seconds(3)); // TODO: delete me
+  //std::this_thread::sleep_for(std::chrono::seconds(3));
 
   std::string command = args.first.at(0);
+  ret = 0;
   if (command == "running_processes") {
-    return running_processes(connection);
+    ret = running_processes(connection);
   } else if (command == "request_device_gpu_info") {
-    return request_device_gpu_info(connection);
+    ret = request_device_gpu_info(connection);
+  } else if (command == "hardware_information") {
+    ret = hardware_information(connection);
+  } else if (command == "network_information") {
+    ret = network_information(connection);
+  } else if (command == "mach_time_info") {
+    ret = mach_time_info(connection);
   } else {
     printf("unknown command: %s\n", command.c_str());
   }
+  
+  //while (true) {
+  //  std::this_thread::sleep_for(std::chrono::seconds(3));
+  //}
+  return ret;
 }

@@ -140,7 +140,73 @@ output:
 ]
 ```
 
-​                    
+​      
+
+#### hardware_information
+
+Query the hardware infomation of your iPhone:
+
+```bash
+$ idevice instruments hardware_information
+```
+
+output:
+
+```json
+{
+    "hwCPU64BitCapable": 1,
+    "hwCPUsubtype": 2,
+    "hwCPUtype": 16777228,
+    "numberOfCpus": 6,
+    "numberOfPhysicalCpus": 6
+}
+```
+
+   
+
+#### network_information
+
+Query the network infomation of your iPhone:
+
+```bash
+$ idevice instruments network_information
+```
+
+output:
+
+```json
+{
+    "en0": "Wi-Fi",
+    "en1": "Ethernet Adapter (en1)",
+    "en2": "Ethernet Adapter (en2)",
+    "lo0": "Loopback"
+}
+```
+
+​            
+
+#### mach_time_info
+
+Query the Mach time infomation of your iPhone:
+
+```bash
+$ idevice instruments mach_time_info
+```
+
+output:
+
+```json
+[
+    1627750298767,
+    125,
+    3,
+    3382495349528,
+    1661927999.285198,
+    "Asia/Shanghai"
+]
+```
+
+​                          
 
 #### decode
 

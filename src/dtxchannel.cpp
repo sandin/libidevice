@@ -11,3 +11,7 @@ void DTXChannel::SendMessageAsync(std::shared_ptr<DTXMessage> msg,
                                   DTXMessenger::ReplyHandler callback) {
   connection_->SendMessageAsync(msg, *this, callback);
 }
+
+void DTXChannel::Cancel() {
+  canceled_ = connection_->CancelChannel(*this);
+}

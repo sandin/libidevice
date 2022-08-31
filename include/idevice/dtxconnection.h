@@ -26,6 +26,7 @@ class DTXConnection : public DTXMessenger {
 
   DTXConnection(IDTXTransport* transport) : transport_(transport) {}
   virtual ~DTXConnection() {
+    // IDEVICE_ASSERT(!IsConnected());
   }
 
   bool Connect();
@@ -33,7 +34,7 @@ class DTXConnection : public DTXMessenger {
   bool IsConnected() const { return transport_->IsConnected(); }
 
   std::shared_ptr<DTXChannel> MakeChannelWithIdentifier(const std::string& channel_identifier);
-  bool CannelChannel(std::shared_ptr<DTXChannel> channel);
+  virtual bool CancelChannel(const DTXChannel& channel) override;
 
   virtual std::shared_ptr<DTXMessage> SendMessageSync(std::shared_ptr<DTXMessage> msg,
                                                       const DTXChannel& channel,

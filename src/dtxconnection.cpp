@@ -7,8 +7,10 @@
 
 using namespace idevice;
 
-static const size_t kReceiveBufferSize = 16 * 1024;  // 0x4000(16384)
-static const uint32_t kReceiveTimeout = 1 * 1000;
+static constexpr size_t kReceiveBufferSize = 16 * 1024;  // 0x4000(16384)
+static constexpr uint32_t kReceiveTimeout = 1 * 1000;
+static constexpr uint32_t kSendQueueTimeout = 1 * 1000;
+static constexpr uint32_t kReceiveQueueTimeout = 1 * 1000;
 
 bool DTXConnection::Connect() {
   bool ret = transport_->Connect();
@@ -52,9 +54,19 @@ std::shared_ptr<DTXChannel> DTXConnection::MakeChannelWithIdentifier(
   return channel;
 }
 
-bool DTXConnection::CannelChannel(std::shared_ptr<DTXChannel> channel) {
-  // TODO:
-  // channels_by_code_.remove channel
+bool DTXConnection::CancelChannel(const DTXChannel& channel) {
+  std::shared_ptr<DTXMessage> message =
+      DTXMessage::CreateWithSelector("_channelCanceled:");
+  message->AppendAuxiliary(DTXPrimitiveValue(static_cast<int32_t>(channel.ChannelIdentifier())));
+
+  std::shared_ptr<DTXMessage> response =
+      SendMessageSync(message, default_channel_, -1 /* wait forever */);
+#if IDEVICE_DEBUG
+  IDEVICE_LOG_D("response message:\n");
+  response->Dump();
+#endif
+  
+  channels_by_code_.erase(channel.ChannelIdentifier());
 }
 
 void DTXConnection::DumpStat() const {
@@ -115,7 +127,7 @@ void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXC
   routing_info.conversation_index = 0;  // TODO
   routing_info.expects_reply = callback != nullptr;
 
-  IDEVICE_LOG_D("push the msg(%d|%d) in the send_queue.\n", routing_info.channel_code, routing_info.msg_identifier);
+  IDEVICE_LOG_D("push the message(%d|%d) in the send queue.\n", routing_info.channel_code, routing_info.msg_identifier);
   send_queue_.Push(std::make_pair(msg, std::move(routing_info)));
 
   // and save the callback of the message
@@ -160,25 +172,25 @@ void DTXConnection::SendThread() {
       return;
     }
 
-    DTXMessageWithRoutingInfo message_with_routing_info = send_queue_.Take();
-    std::shared_ptr<DTXMessage> message = message_with_routing_info.first;
-    const DTXMessageRoutingInfo& routing_info = message_with_routing_info.second;
-    IDEVICE_LOG_D("take the msg(%d|%d) out of the send_queue.\n", routing_info.channel_code, routing_info.msg_identifier);
+    if (send_queue_.WaitToTake(kSendQueueTimeout)) {
+      DTXMessageWithRoutingInfo message_with_routing_info = send_queue_.Take();
+      std::shared_ptr<DTXMessage> message = message_with_routing_info.first;
+      const DTXMessageRoutingInfo& routing_info = message_with_routing_info.second;
+      IDEVICE_LOG_D("take the message(%d|%d) out of the send queue.\n", routing_info.channel_code, routing_info.msg_identifier);
 
-    BufferedDTXTransport buffered_transport(transport_, send_buffer, send_buffer_size);
-    bool ret = outgoing_transmitter_.TransmitMessage(message, routing_info,
-                                                     [&](const char* buffer, size_t size) -> bool {
-                                                       return buffered_transport.Send(buffer, size);
-                                                     });
-    buffered_transport.Flush();
+      BufferedDTXTransport buffered_transport(transport_, send_buffer, send_buffer_size);
+      bool ret = outgoing_transmitter_.TransmitMessage(message, routing_info,
+                                                       [&](const char* buffer, size_t size) -> bool {
+                                                         return buffered_transport.Send(buffer, size);
+                                                       });
+      buffered_transport.Flush();
 
-    if (!ret) {  // TODO: can we trust this return value?
-      IDEVICE_LOG_E("Error: can not send outgoing message, diconnecting.\n");
-      Disconnect();
-      break;
+      if (!ret) {  // TODO: can we trust this return value?
+        IDEVICE_LOG_E("Error: can not send outgoing message, diconnecting.\n");
+        Disconnect();
+        break;
+      }
     }
-
-    // TODO: callback with routing info
   }
   free(send_buffer);
   IDEVICE_LOG_I("SendThread stop\n");
@@ -251,24 +263,26 @@ void DTXConnection::ParsingThread() {
       return;
     }
 
-    std::unique_ptr<Packet> packet = receive_queue_.Take();
-    IDEVICE_LOG_D("parsing %zu bytes\n", packet->size);
-    bool ret = incoming_parser_.ParseIncomingBytes(packet->buffer, packet->size);
-    free(packet->buffer);  // all data in the packet buffer has been copied to the parser buffer
+    if (receive_queue_.WaitToTake(kReceiveQueueTimeout)) {
+      std::unique_ptr<Packet> packet = receive_queue_.Take();
+      IDEVICE_LOG_D("parsing %zu bytes\n", packet->size);
+      bool ret = incoming_parser_.ParseIncomingBytes(packet->buffer, packet->size);
+      free(packet->buffer);  // all data in the packet buffer has been copied to the parser buffer
 
-    if (!ret) {
-      IDEVICE_LOG_E("Error: can not parse incoming bytes, diconnecting.\n");
-      Disconnect();
-      break;
-    }
+      if (!ret) {
+        IDEVICE_LOG_E("Error: can not parse incoming bytes, diconnecting.\n");
+        Disconnect();
+        break;
+      }
 
-    std::vector<std::shared_ptr<DTXMessage>> messages = incoming_parser_.PopAllParsedMessages();
-    uint32_t max_msg_identifier = 0;
-    for (auto& msg : messages) {
-      RouteMessage(msg);
-      max_msg_identifier = std::max(max_msg_identifier, msg->Identifier());
+      std::vector<std::shared_ptr<DTXMessage>> messages = incoming_parser_.PopAllParsedMessages();
+      uint32_t max_msg_identifier = 0;
+      for (auto& msg : messages) {
+        RouteMessage(msg);
+        max_msg_identifier = std::max(max_msg_identifier, msg->Identifier());
+      }
+      IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_msg_identifier + 1);
     }
-    IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_msg_identifier + 1);
   }
   IDEVICE_LOG_I("ParsingThread stop\n");
 }
@@ -281,6 +295,7 @@ void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
   auto callback_found = _handlers_by_identifier_.find(callback_identifier);
   if (callback_found != _handlers_by_identifier_.end()) {
     auto callback = callback_found->second;
+    IDEVICE_LOG_D("route the message(%d|%d) to the callback %p\n", channel_code, msg_identifier, &callback);
     callback(msg);  // -> invoke callback with the parsed message TODO: the callback may slow down
                     // the parser, and thus make the receive queue larger.
     // TODO: notify all
@@ -292,7 +307,9 @@ void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
   auto found = channels_by_code_.find(channel_code);
   if (found != channels_by_code_.end()) {
     std::shared_ptr<DTXChannel> channel = found->second;
-    /* TODO
+    IDEVICE_LOG_D("route the message(%d|%d) to the channel %s(%d)\n", channel_code, msg_identifier,
+                  channel->Label().c_str(), channel->ChannelIdentifier());
+    /* TODO:
     auto callback = channel.GetMessageHandler();
     if (callback != nullptr) {
       callback(msg);

@@ -62,7 +62,10 @@
   if (stop_flag.load(std::memory_order_acquire)) { \
     stop_flag.store(false, std::memory_order_release); \
     if (await) { \
+      IDEVICE_LOG_D("joining the thread "#thread_var"\n"); \
       thread_var->join(); \
+      IDEVICE_LOG_D("joined the thread "#thread_var"\n"); \
+      thread_var = nullptr; \
     } \
   }
 
