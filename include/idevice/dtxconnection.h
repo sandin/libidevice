@@ -25,7 +25,8 @@ class DTXConnection : public DTXMessenger {
   using DTXMessageWithRoutingInfo = std::pair<std::shared_ptr<DTXMessage>, DTXMessageRoutingInfo>;
 
   DTXConnection(IDTXTransport* transport) : transport_(transport) {}
-  virtual ~DTXConnection() {}
+  virtual ~DTXConnection() {
+  }
 
   bool Connect();
   bool Disconnect();

@@ -1,6 +1,7 @@
 #include "instruments.hpp"
 
 #include <string>
+#include <thread>
 
 #include "idevice/dtxchannel.h"
 #include "idevice/dtxconnection.h"
@@ -14,11 +15,20 @@ using namespace idevice;
 
 int running_processes(DTXConnection* connection) {
   printf("runningProcesses:\n");
-  std::shared_ptr<DTXChannel> channel =
+  auto channel =
       connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+  auto message = DTXMessage::CreateWithSelector("runningProcesses");
+  auto response = channel->SendMessageSync(message);
+  printf("%s\n", response->PayloadObject()->ToJson().c_str());
+  return 0;
+}
 
-  std::shared_ptr<DTXMessage> message = DTXMessage::CreateWithSelector("runningProcesses");
-  std::shared_ptr<DTXMessage> response = channel->SendMessageSync(message, -1);
+int request_device_gpu_info(DTXConnection* connection) {
+  printf("requestDeviceGPUInfo:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.gpu");
+  auto message = DTXMessage::CreateWithSelector("requestDeviceGPUInfo");
+  auto response = channel->SendMessageSync(message);
   printf("%s\n", response->PayloadObject()->ToJson().c_str());
   return 0;
 }
@@ -47,21 +57,24 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
   defer(device, idevice_free(device));
 
   IDTXTransport* transport = new DTXTransport(device);
-  defer(transport, free(transport));
+  defer(transport, delete transport);
 
   DTXConnection* connection = new DTXConnection(transport);
   defer(connection, {
     connection->Disconnect();
-    free(connection);
+    delete connection;
   });
   if (!connection->Connect()) {
     printf("Can not connect to the device(uuid: %s).\n", udid.c_str());
     return -1;
   }
+  std::this_thread::sleep_for(std::chrono::seconds(3)); // TODO: delete me
 
   std::string command = args.first.at(0);
-  if (command == "runningProcesses") {
+  if (command == "running_processes") {
     return running_processes(connection);
+  } else if (command == "request_device_gpu_info") {
+    return request_device_gpu_info(connection);
   } else {
     printf("unknown command: %s\n", command.c_str());
   }

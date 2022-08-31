@@ -81,7 +81,7 @@ bool DTXMessageTransmitter::TransmitMessage(const std::shared_ptr<DTXMessage>& m
       size_t offset = 0;
       while (offset < size) {
         size_t consume_size =
-            std::min(size, std::min(this_fragment_length - buffer.Size(), this_fragment_length));
+            std::min({size, this_fragment_length - buffer.Size(), this_fragment_length});
         printf("offset=%zu, size=%zu, buffer.size=%zu, consume_size: %zu\n", offset, size,
                buffer.Size(), consume_size);
         buffer.Append(bytes + offset, consume_size);

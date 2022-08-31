@@ -11,7 +11,7 @@ using namespace idevice::tools;
   "     --hex: dump data as hex string\n"                                                        \
   "     --limit [count]: parse messages limit number pre file\n"                                 \
   " instruments [subcommand]\n"                                                                  \
-  "   runningProcesses                                    print the running processes\n"
+  "   running_processes                                    print the running processes\n"
 
 int main(int argc, char* argv[]) {
   Args args = parse_args(argc, argv);

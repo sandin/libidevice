@@ -49,11 +49,11 @@ channel->SendMessageAsync(message,  [&](auto msg) {
 ​          
 
 ### idevice
-#### runningProcesses
+#### running_processes
 
 Print the list of running processes on your iPhone:
 ```bash
-$ idevice instruments runningProcesses
+$ idevice instruments running_processes
 ```
 
 output:
@@ -80,7 +80,67 @@ output:
 ]
 ```
 
-​           
+​      
+
+#### request_device_gpu_info
+
+Query the GPU infomation of your iPhone:
+
+```bash
+$ idevice instruments request_device_gpu_info
+```
+
+output:
+
+```json
+[
+    {
+        "accelerator-id": 4294967943,
+        "agx-tracecode-version": "3.24.4",
+        "device-name": "A13",
+        "displays": [
+            {
+                "accelerator-id": 4294967943,
+                "built-in": true,
+                "device-name": "LCD",
+                "display-id": 1,
+                "framebuffer-index": 0,
+                "pixel-height": 2688,
+                "pixel-width": 1242,
+                "resolution": [
+                    1242,
+                    2688
+                ]
+            }
+        ],
+        "family-name": "A13",
+        "headless": false,
+        "low-power": false,
+        "min-collection-interval": 0,
+        "mobile": true,
+        "perf-state": {
+            "accelerator-id": 4294967943,
+            "available": true,
+            "enabled": false,
+            "level": 0,
+            "mapping": 16975360,
+            "sustained": false
+        },
+        "product-name": "",
+        "recommended-max-working-set-size": 2620473344,
+        "removable": false,
+        "supported-counter-profiles": [
+            0,
+            3,
+            4,
+            1
+        ],
+        "vendor-name": "Apple"
+    }
+]
+```
+
+​                    
 
 #### decode
 

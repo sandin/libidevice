@@ -35,7 +35,7 @@ typedef struct {
 
 
 void EatAll() {
-    FSeek(FileSize);
+    FSeek(FileSize());
 }
 
 int ParseDTXMessage() {    
@@ -50,6 +50,7 @@ int ParseDTXMessage() {
     
         remain = FileSize() - FTell();
         if (remain < header.length) {
+            Printf("not enough bytes to read a message, need=%d, actual=%d, pos=0x%X\n", header.length, remain, msg_start); 
             EatAll();
             return -1;
         }
@@ -109,7 +110,7 @@ int ParseDTXMessage() {
             if (header.fragment_index == 0) {
                 // the first fragment only contains the DTXMessageHeader
             } else {
-                Printf("FTell: %d\n", FTell());
+                Printf("fragment payload offset: 0x%x\n", FTell());
                 byte payload[header.length];
             }
             // TODO

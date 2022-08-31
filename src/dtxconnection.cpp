@@ -21,9 +21,9 @@ bool DTXConnection::Connect() {
 }
 
 bool DTXConnection::Disconnect() {
-  StopSendThread(false);
-  StopReceiveThread(false);
-  StopParsingThread(false);
+  StopSendThread(true);
+  StopReceiveThread(true);
+  StopParsingThread(true);
 
   send_queue_.Clear();
   receive_queue_.Clear([](std::unique_ptr<Packet>& packet) { free(packet->buffer); });
@@ -42,7 +42,6 @@ std::shared_ptr<DTXChannel> DTXConnection::MakeChannelWithIdentifier(
       DTXMessage::CreateWithSelector("_requestChannelWithCode:identifier:");
   message->AppendAuxiliary(DTXPrimitiveValue(static_cast<int32_t>(channel_code)));
   message->AppendAuxiliary(nskeyedarchiver::KAValue(channel_identifier.c_str()));
-  // TODO: set Message Routing Info
 
   std::shared_ptr<DTXMessage> response =
       SendMessageSync(message, default_channel_, -1 /* wait forever */);
@@ -116,6 +115,7 @@ void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXC
   routing_info.conversation_index = 0;  // TODO
   routing_info.expects_reply = callback != nullptr;
 
+  IDEVICE_LOG_D("push the msg(%d|%d) in the send_queue.\n", routing_info.channel_code, routing_info.msg_identifier);
   send_queue_.Push(std::make_pair(msg, std::move(routing_info)));
 
   // and save the callback of the message
@@ -163,6 +163,7 @@ void DTXConnection::SendThread() {
     DTXMessageWithRoutingInfo message_with_routing_info = send_queue_.Take();
     std::shared_ptr<DTXMessage> message = message_with_routing_info.first;
     const DTXMessageRoutingInfo& routing_info = message_with_routing_info.second;
+    IDEVICE_LOG_D("take the msg(%d|%d) out of the send_queue.\n", routing_info.channel_code, routing_info.msg_identifier);
 
     BufferedDTXTransport buffered_transport(transport_, send_buffer, send_buffer_size);
     bool ret = outgoing_transmitter_.TransmitMessage(message, routing_info,
@@ -300,5 +301,8 @@ void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
   } else {
     IDEVICE_LOG_I("dropped message (no message handler). channel code: %d, msg identifier: %d\n",
                   channel_code, msg_identifier);
+#if IDEVICE_DEBUG
+    msg->Dump();
+#endif
   }
 }

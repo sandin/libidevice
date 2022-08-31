@@ -96,6 +96,7 @@ class DebugProxyTransport : public IDTXTransport {
 #endif  // DEBUG_DTXTRANSPORT
 
 TEST(idevice, Test) {
+  /* TODO: move this to the tools directory
   idevice_t device = GET_FIRST_DEVICE();
   defer(device, idevice_free(device));
 
@@ -105,16 +106,16 @@ TEST(idevice, Test) {
 #else
   IDTXTransport* transport = new DTXTransport(device);
 #endif
-  defer(transport, free(transport));
+  defer(transport, delete transport);
 
   DTXConnection* connection = new DTXConnection(transport);
+  defer(connection, {
+    connection->Disconnect();
+    delete connection;
+  });
   if (!connection->Connect()) {
     ASSERT_TRUE(false);
   }
-  defer(connection, {
-    connection->Disconnect();
-    free(connection);
-  });
 
   std::shared_ptr<DTXChannel> channel =
       connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
@@ -132,7 +133,6 @@ TEST(idevice, Test) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
-  /*
   DTXChannel* device_info_channel =
   connection.MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
 

@@ -86,7 +86,7 @@ TEST(DTXPrimitiveArrayTest, Ctor) {
 
   DTXPrimitiveValue& value1 = array.At(1);
   ASSERT_EQ(DTXPrimitiveValue::kString, value1.GetType());
-  ASSERT_EQ(strlen(str) + 1 /* \0 */, value1.Size());
+  ASSERT_EQ(strlen(str)/* without ending \0 */, value1.Size());
   ASSERT_STREQ(str, value1.ToStr());
 
   DTXPrimitiveValue& value2 = array.At(2);

@@ -47,7 +47,7 @@
 #define IDEVICE_MEM_ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
 
 // ASSERT
-#define IDEVICE_ASSERT(exp, fmt, ...) if (!(exp)) { LOG_ERROR(fmt, ##__VA_ARGS__); } assert(exp)
+#define IDEVICE_ASSERT(exp, fmt, ...) if (!(exp)) { IDEVICE_LOG_E(fmt, ##__VA_ARGS__); } assert(exp)
 
 // HELPER
 #define IDEVICE_ATOMIC_SET_MAX(atomic_value, max_value) \
