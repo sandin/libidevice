@@ -84,6 +84,11 @@ class DTXMessage {
    */
   static std::shared_ptr<DTXMessage> CreateWithBuffer(const char* buffer, size_t size,
                                                       bool should_copy);
+  
+  /**
+   * Create a reply DTXMessage
+   */
+  static std::shared_ptr<DTXMessage> NewReply(std::shared_ptr<DTXMessage> replyTo);
 
   uint32_t MessageType() const { return message_type_; }
   void SetMessageType(uint32_t message_type) { message_type_ = message_type; }
@@ -140,7 +145,7 @@ class DTXMessage {
   bool should_free_payload_buffer_ = false;
   size_t cost_size_ = 0;
   size_t payload_size_ = 0;
-  uint32_t message_type_ = 0;
+  uint32_t message_type_ = kInterruptionMessage;
   std::unique_ptr<DTXPrimitiveArray> auxiliary_ = nullptr;
   std::unordered_map<size_t, nskeyedarchiver::KAValue> auxiliary_objects_;
 
@@ -148,7 +153,7 @@ class DTXMessage {
   uint32_t identifier_ = 0;
   uint32_t conversation_index_ = 0;
   uint32_t channel_code_ = 0;
-  bool expects_reply_ = true;
+  bool expects_reply_ = false;
 
   bool deserialized_ = false;
 

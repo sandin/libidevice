@@ -37,9 +37,8 @@ class DTXConnection : public DTXMessenger {
   virtual bool CancelChannel(const DTXChannel& channel) override;
 
   virtual std::shared_ptr<DTXMessage> SendMessageSync(std::shared_ptr<DTXMessage> msg,
-                                                      const DTXChannel& channel,
                                                       uint32_t timeout_ms = -1) override;
-  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel,
+  virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg,
                                 ReplyHandler callback) override;
 
   void DumpStat() const;  // ONLY FOR DEBUG
@@ -63,6 +62,7 @@ class DTXConnection : public DTXMessenger {
   void StopParsingThread(bool await);
 
   void RouteMessage(std::shared_ptr<DTXMessage> msg);
+  void ReplyMessage(std::shared_ptr<DTXMessage> msg);
 
   std::atomic_bool send_thread_running_ = ATOMIC_VAR_INIT(false);
   std::unique_ptr<std::thread> send_thread_ = nullptr;  /// sender of outgoing messages

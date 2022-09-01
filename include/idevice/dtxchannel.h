@@ -8,7 +8,7 @@
 
 namespace idevice {
 
-class DTXChannel /*: public DTXMessenger */ {
+class DTXChannel /* : public DTXMessenger */ {
  public:
   DTXChannel(DTXMessenger* connection, const std::string& label, uint32_t channel_identifier)
       : connection_(connection), label_(label), channel_identifier_(channel_identifier) {}

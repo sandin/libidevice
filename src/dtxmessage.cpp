@@ -38,6 +38,16 @@ std::shared_ptr<DTXMessage> DTXMessage::CreateWithBuffer(const char* buffer, siz
 }
 
 // static
+std::shared_ptr<DTXMessage> DTXMessage::NewReply(std::shared_ptr<DTXMessage> replyTo) {
+  std::shared_ptr<DTXMessage> message = std::make_shared<DTXMessage>();
+  message->SetMessageType(kInterruptionMessage);
+  message->SetChannelCode(replyTo->ChannelCode());
+  message->SetIdentifier(replyTo->Identifier());
+  message->SetConversationIndex(replyTo->ConversationIndex() + 1);
+  return message;
+}
+
+// static
 std::shared_ptr<DTXMessage> DTXMessage::Deserialize(const char* bytes, size_t size) {
   /* ONLY FOR DEBUG
   static int count = 0;
@@ -96,7 +106,9 @@ size_t DTXMessage::SerializedLength() {
   size_t length = kDTXMessagePayloadHeaderSize;
 
   MaybeSerializeAuxiliaryObjects();
-  length += auxiliary_->SerializedLength();
+  if (auxiliary_) {
+    length += auxiliary_->SerializedLength();
+  }
 
   MaybeSerializePayloadObject();
   length += payload_size_;
@@ -109,7 +121,7 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
   serializer(reinterpret_cast<const char*>(&message_type_), sizeof(uint32_t));
 
   MaybeSerializeAuxiliaryObjects();
-  uint32_t auxiliary_length = auxiliary_->SerializedLength();
+  uint32_t auxiliary_length = auxiliary_ ? auxiliary_->SerializedLength() : 0;
   serializer(reinterpret_cast<const char*>(&auxiliary_length), sizeof(uint32_t));
 
   MaybeSerializePayloadObject();
@@ -123,7 +135,7 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
 #endif
 
   // Serialize auxiliary
-  if (auxiliary_length > 0) {
+  if (auxiliary_length > 0 /* auxiliary_ != nullptr */) {
     if (!auxiliary_->SerializeTo(serializer)) {
       return false;
     }
@@ -137,7 +149,7 @@ bool DTXMessage::SerializeTo(std::function<bool(const char*, size_t)> serializer
 }
 
 void DTXMessage::MaybeSerializePayloadObject() {
-  if (payload_buffer_ == nullptr) {
+  if (payload_buffer_ == nullptr && payload_object_ != nullptr) {
     payload_size_ = 0;
     nskeyedarchiver::NSKeyedArchiver::ArchivedData(
         *payload_object_, &payload_buffer_, &payload_size_,
@@ -179,6 +191,7 @@ void DTXMessage::SetPayloadBuffer(char* buffer, size_t size, bool should_copy) {
 }
 
 void DTXMessage::AppendAuxiliary(nskeyedarchiver::KAValue&& aux) {
+  IDEVICE_ASSERT(auxiliary_ != nullptr, "auxiliary_ is null\n");
   size_t index = auxiliary_->Size();
   auxiliary_->Append(DTXPrimitiveValue() /* as placeholder */);
   auxiliary_objects_.insert(std::make_pair(index, std::move(aux)));

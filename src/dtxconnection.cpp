@@ -47,7 +47,7 @@ std::shared_ptr<DTXChannel> DTXConnection::MakeChannelWithIdentifier(
   message->AppendAuxiliary(nskeyedarchiver::KAValue(channel_identifier.c_str()));
 
   std::shared_ptr<DTXMessage> response =
-      SendMessageSync(message, default_channel_, -1 /* wait forever */);
+      SendMessageSync(message, -1 /* wait forever */);
 #if IDEVICE_DEBUG
   IDEVICE_LOG_D("response message:\n");
   response->Dump();
@@ -61,7 +61,7 @@ bool DTXConnection::CancelChannel(const DTXChannel& channel) {
   message->AppendAuxiliary(DTXPrimitiveValue(static_cast<int32_t>(channel.ChannelIdentifier())));
 
   std::shared_ptr<DTXMessage> response =
-      SendMessageSync(message, default_channel_, -1 /* wait forever */);
+      SendMessageSync(message, -1 /* wait forever */);
 #if IDEVICE_DEBUG
   IDEVICE_LOG_D("response message:\n");
   response->Dump();
@@ -119,13 +119,12 @@ void DTXConnection::DumpStat() const {
  * │  DTXService ├───────►│  SendMsg   │
  * └─────────────┘        └────────────┘
  */
-void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXChannel& channel,
-                                     ReplyHandler callback) {
+void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, ReplyHandler callback) {
   // put the message into the send queue
   DTXMessageRoutingInfo routing_info = {0};
   routing_info.msg_identifier = next_msg_identifier_.fetch_add(1);
-  routing_info.channel_code = channel.ChannelIdentifier();
-  routing_info.conversation_index = 0;  // TODO
+  routing_info.channel_code = msg->ChannelCode();
+  routing_info.conversation_index = msg->ConversationIndex();
   routing_info.expects_reply = callback != nullptr;
 
   IDEVICE_LOG_D("push the message(%d|%d) in the send queue.\n", routing_info.channel_code, routing_info.msg_identifier);
@@ -139,13 +138,10 @@ void DTXConnection::SendMessageAsync(std::shared_ptr<DTXMessage> msg, const DTXC
   }
 }
 
-std::shared_ptr<DTXMessage> DTXConnection::SendMessageSync(std::shared_ptr<DTXMessage> msg,
-                                                           const DTXChannel& channel,
-                                                           uint32_t timeout_ms) {
+std::shared_ptr<DTXMessage> DTXConnection::SendMessageSync(std::shared_ptr<DTXMessage> msg, uint32_t timeout_ms) {
   std::promise<std::shared_ptr<DTXMessage>> promise;
   std::future<std::shared_ptr<DTXMessage>> future = promise.get_future();
-  SendMessageAsync(msg, channel,
-                   [&promise](auto response_msg) { promise.set_value(response_msg); });
+  SendMessageAsync(msg, [&promise](auto response_msg) { promise.set_value(response_msg); });
   if (timeout_ms != -1) {
     return future.get();
   } else {
@@ -280,6 +276,9 @@ void DTXConnection::ParsingThread() {
       uint32_t max_msg_identifier = 0;
       for (auto& msg : messages) {
         RouteMessage(msg);
+        if (msg->ExpectsReply()) {
+          ReplyMessage(msg);
+        }
         max_msg_identifier = std::max(max_msg_identifier, msg->Identifier());
       }
       IDEVICE_ATOMIC_SET_MAX(next_msg_identifier_, max_msg_identifier + 1);
@@ -321,4 +320,9 @@ void DTXConnection::RouteMessage(std::shared_ptr<DTXMessage> msg) {
 #if IDEVICE_DEBUG
   msg->Dump();
 #endif
+}
+
+void DTXConnection::ReplyMessage(std::shared_ptr<DTXMessage> msg) {
+  std::shared_ptr<DTXMessage> reply_msg = DTXMessage::NewReply(msg);
+  SendMessageAsync(reply_msg, nullptr);
 }
