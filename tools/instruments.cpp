@@ -9,10 +9,17 @@
 #include "libimobiledevice/libimobiledevice.h"
 #include "nskeyedarchiver/scope.hpp"
 #include "nskeyedarchiver/kavalue.hpp"
+#include "nskeyedarchiver/kaarray.hpp"
 
 using namespace idevice;
 
 #define defer(label, exp) auto label##_grand = nskeyedarchiver::make_scope_exit([&]() { exp; });
+
+#define NSMutableSet_t nskeyedarchiver::KAArray
+#define NSMutableSet(...) nskeyedarchiver::KAArray("NSMutableSet", {"NSMutableSet", "NSSet", "NSObject"}, ##__VA_ARGS__)
+#define NSSet_t nskeyedarchiver::KAArray
+#define NSSet(...) nskeyedarchiver::KAArray("NSSet", {"NSSet", "NSObject"}, ##__VA_ARGS__)
+#define NSValue(s) nskeyedarchiver::KAValue(s)
 
 int running_processes(DTXConnection* connection) {
   printf("runningProcesses:\n");
@@ -109,6 +116,11 @@ int graphics_opengl(DTXConnection* connection) {
   printf("graphics_opengl:\n");
   auto channel =
       connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.graphics.opengl");
+  channel->SetMessageHandler([=](std::shared_ptr<DTXMessage> msg) {
+    if (msg->PayloadObject()) {
+      printf("%s\n", msg->PayloadObject()->ToJson().c_str());
+    }
+  });
   
   {
     auto message = DTXMessage::CreateWithSelector("setSamplingRate:");
@@ -122,13 +134,71 @@ int graphics_opengl(DTXConnection* connection) {
     channel->SendMessageSync(message);
   }
   
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+  }
+  
+  channel->Cancel();
+  return 0;
+}
+
+int networking(DTXConnection* connection) {
+  printf("networking:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.networking");
   channel->SetMessageHandler([=](std::shared_ptr<DTXMessage> msg) {
     if (msg->PayloadObject()) {
       printf("%s\n", msg->PayloadObject()->ToJson().c_str());
     }
   });
+ 
+  auto message = DTXMessage::CreateWithSelector("startMonitoring");
+  channel->SendMessageSync(message);
   
   while (true) {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+  }
+  
+  channel->Cancel();
+  return 0;
+}
+
+int energy(DTXConnection* connection, uint64_t pid) {
+  printf("Energy:\n");
+  auto channel =
+      connection->MakeChannelWithIdentifier("com.apple.xcode.debug-gauge-data-providers.Energy");
+
+  channel->SetMessageHandler([=](std::shared_ptr<DTXMessage> msg) {
+    if (msg->PayloadObject()) {
+      printf("%s\n", msg->PayloadObject()->ToJson().c_str());
+    }
+  });
+ 
+  {
+    auto message = DTXMessage::CreateWithSelector("startSamplingForPIDs:");
+    NSMutableSet_t pids = NSMutableSet({nskeyedarchiver::KAValue(pid)});
+    message->AppendAuxiliary(NSValue(std::move(pids)));
+    channel->SendMessageSync(message);
+  }
+  
+  while (true) {
+    auto message = DTXMessage::CreateWithSelector("sampleAttributes:forPIDs:");
+    // attributes
+    NSSet_t attributes = NSSet({
+      NSValue("energy.cost"),
+      NSValue("energy.CPU"),
+      NSValue("energy.networking"),
+      NSValue("energy.location"),
+      NSValue("energy.GPU"),
+      NSValue("energy.appstate"),
+      NSValue("energy.overhead"),
+    });
+    message->AppendAuxiliary(NSValue(std::move(attributes)));
+    // pids
+    NSMutableSet_t pids = NSMutableSet({ NSValue(pid) });
+    message->AppendAuxiliary(NSValue(std::move(pids)));
+    
+    channel->SendMessageSync(message);
     std::this_thread::sleep_for(std::chrono::seconds(3));
   }
   
@@ -192,6 +262,11 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
     ret = core_profile_session_tap(connection);
   } else if (command == "graphics_opengl") {
     ret = graphics_opengl(connection);
+  } else if (command == "networking") {
+    ret = networking(connection);
+  } else if (command == "energy") {
+    uint64_t pid = idevice::tools::get_flag_as_int(args, "pid", 0);
+    ret = energy(connection, pid);
   } else {
     printf("unknown command: %s\n", command.c_str());
   }

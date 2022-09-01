@@ -213,7 +213,7 @@ output:
 Get the binary executable name of the pid:
 
 ```bash
-$ idevice instruments execname_for_pid --pid 1834
+$ idevice instruments execname_for_pid --pid <pid>
 ```
 
 output:
@@ -265,7 +265,62 @@ output:
 }
 ```
 
-​                                                             
+​                        
+
+#### networking
+
+Get the profile data of networking in real-time:
+
+```bash
+$ idevice instruments networking
+```
+
+output:
+
+```json
+[1,["EALz2goL6h4AAAAAAAAAAA==","EAIBuxH9V9AAAAAAAAAAAA==",12,18446744073709551614,0,0,84,1]]
+[2,[4,24,5,284,0,0,0,0.018500,0.016750,84,135]]
+[2,[0,0,0,0,0,0,0,0.123781,0.123781,147,120]]
+```
+
+​             
+
+#### energy
+
+Get the profile data of energy in real-time:
+
+```bash
+$ idevice instruments energy --pid <pid>
+```
+
+output:
+
+```json
+{
+    "12408": {
+        "energy.appstate.cost": 2,
+        "energy.appstate.overhead": 0,
+        "energy.cost": -10,
+        "energy.cpu.cost": 0,
+        "energy.cpu.overhead": 0,
+        "energy.display.cost": 0,
+        "energy.display.overhead": 0,
+        "energy.gpu.cost": 0,
+        "energy.gpu.overhead": 0,
+        "energy.inducedthermalstate.cost": 18446744073709551615,
+        "energy.location.cost": 0,
+        "energy.location.overhead": 0,
+        "energy.networking.cost": 0,
+        "energy.networkning.overhead": 0,
+        "energy.overhead": -10,
+        "energy.thermalstate.cost": 0,
+        "energy.version": 1,
+        "kIDEGaugeSecondsSinceInitialQueryKey": 5
+    }
+}
+```
+
+​                                  
 
 #### decode
 
