@@ -44,6 +44,7 @@ set(HEADERS
     include/idevice/dtxchannel.h
     include/idevice/dtxtransport.h
     include/idevice/dtxprimitivearray.h
+    include/idevice/kperf.h
     include/idevice/macro_def.h
     include/idevice/macro_undef.h
 )
@@ -57,6 +58,7 @@ set(SOURCES
     src/dtxchannel.cpp
     src/dtxtransport.cpp
     src/dtxprimitivearray.cpp
+    src/kperf.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries(

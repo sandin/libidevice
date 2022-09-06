@@ -6,6 +6,7 @@
 #include "idevice/dtxchannel.h"
 #include "idevice/dtxconnection.h"
 #include "idevice/dtxtransport.h"
+#include "idevice/kperf.h"
 #include "libimobiledevice/libimobiledevice.h"
 #include "nskeyedarchiver/scope.hpp"
 #include "nskeyedarchiver/kavalue.hpp"
@@ -20,6 +21,7 @@ using namespace idevice;
 #define NSSet_t nskeyedarchiver::KAArray
 #define NSSet(...) nskeyedarchiver::KAArray("NSSet", {"NSSet", "NSObject"}, ##__VA_ARGS__)
 #define NSValue(s) nskeyedarchiver::KAValue(s)
+
 
 int running_processes(DTXConnection* connection) {
   printf("runningProcesses:\n");
@@ -89,26 +91,50 @@ int request_device_gpu_info(DTXConnection* connection) {
 }
 
 int core_profile_session_tap(DTXConnection* connection) {
-/*
   printf("coreprofilesessiontap:\n");
+  
+  /*
+  // get traceCodesFile
+  {
+    auto device_info_channel =
+        connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.deviceinfo");
+    auto message = DTXMessage::CreateWithSelector("traceCodesFile");
+    auto response = device_info_channel->SendMessageSync(message);
+    printf("%s\n", response->PayloadObject()->ToJson().c_str());
+    device_info_channel->Cancel();
+  }
+  */
+  
   auto channel =
       connection->MakeChannelWithIdentifier("com.apple.instruments.server.services.coreprofilesessiontap");
-  TODO: setConfigs:
-  auto message1 = DTXMessage::CreateWithSelector("setConfigs:");
-  auto response1 = channel->SendMessageSync(message);
-  printf("%s\n", response1->PayloadObject()->ToJson().c_str());
+  channel->SetMessageHandler([=](std::shared_ptr<DTXMessage> msg) {
+    if (msg->PayloadObject()) {
+      printf("%s\n", msg->PayloadObject()->ToJson().c_str());
+    }
+  });
+  
+  DTKTraceTapTriggerConfig trigger_config;
+  trigger_config.SetKind(3);
+  trigger_config.SetUUID("1DE83AEE-41CA-42AC-BAD9-19F504506EAB");
+  trigger_config.SetKDebugFilter({ 630784000, 833617920, 830472456 });
+  
+  DTKTraceTapConfig config;
+  config.SetRecodingPriority(10);
+  config.SetPollingInterval(500);
+  config.SetTriggerConfig(trigger_config);
+  
+  auto message1 = DTXMessage::CreateWithSelector("setConfig:");
+  message1->AppendAuxiliary(config.ToKAValue());
+  auto response1 = channel->SendMessageSync(message1);
+  response1->Dump();
  
   auto message2 = DTXMessage::CreateWithSelector("start");
-  auto response2 = channel->SendMessageSync(message);
-  printf("%s\n", response2->PayloadObject()->ToJson().c_str());
+  auto response2 = channel->SendMessageSync(message2);
+  response2->Dump();
  
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(3));
   }
- 
-  channel->Cancel();
-*/
-  printf("Unsupported method.\n");
   return 0;
 }
 
@@ -241,7 +267,7 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
     printf("Can not connect to the device(uuid: %s).\n", udid.c_str());
     return -1;
   }
-  //std::this_thread::sleep_for(std::chrono::seconds(3));
+  std::this_thread::sleep_for(std::chrono::seconds(3));
 
   std::string command = args.first.at(0);
   ret = 0;
