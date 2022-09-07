@@ -31,34 +31,36 @@ include_directories("./libs/libnskeyedarchiver/include")
 # library: libidevice
 include_directories("./include")
 set(HEADERS
-    include/idevice/blockingqueue.h
-    include/idevice/bytebuffer.h
-    include/idevice/idevice.h
-    include/idevice/instrument.h
-    include/idevice/iservice.h
-    include/idevice/dtxmessenger.h
-    include/idevice/dtxmessage.h
-    include/idevice/dtxmessageparser.h
-    include/idevice/dtxmessagetransmitter.h
-    include/idevice/dtxconnection.h
-    include/idevice/dtxchannel.h
-    include/idevice/dtxtransport.h
-    include/idevice/dtxprimitivearray.h
-    include/idevice/kperf.h
-    include/idevice/macro_def.h
-    include/idevice/macro_undef.h
+    include/idevice/common/idevice.h
+    include/idevice/common/macro_def.h
+    include/idevice/common/macro_undef.h
+
+    include/idevice/utils/blockingqueue.h
+    include/idevice/utils/bytebuffer.h
+
+    include/idevice/service/iservice.h
+
+    include/idevice/instrument/instrument.h
+    include/idevice/instrument/dtxmessenger.h
+    include/idevice/instrument/dtxmessage.h
+    include/idevice/instrument/dtxmessageparser.h
+    include/idevice/instrument/dtxmessagetransmitter.h
+    include/idevice/instrument/dtxconnection.h
+    include/idevice/instrument/dtxchannel.h
+    include/idevice/instrument/dtxtransport.h
+    include/idevice/instrument/dtxprimitivearray.h
+    include/idevice/instrument/kperf.h
 )
 set(SOURCES
-    src/instrument.cpp
-    src/idevice.cpp
-    src/dtxmessage.cpp
-    src/dtxmessageparser.cpp
-    src/dtxmessagetransmitter.cpp
-    src/dtxconnection.cpp
-    src/dtxchannel.cpp
-    src/dtxtransport.cpp
-    src/dtxprimitivearray.cpp
-    src/kperf.cpp
+    src/instrument/instrument.cpp
+    src/instrument/dtxmessage.cpp
+    src/instrument/dtxmessageparser.cpp
+    src/instrument/dtxmessagetransmitter.cpp
+    src/instrument/dtxconnection.cpp
+    src/instrument/dtxchannel.cpp
+    src/instrument/dtxtransport.cpp
+    src/instrument/dtxprimitivearray.cpp
+    src/instrument/kperf.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries(
@@ -73,13 +75,12 @@ target_link_libraries(
 enable_testing()
 add_executable(
   ${PROJECT_NAME}_test
-  test/blockingqueue_test.cpp
-  test/bytebuffer_test.cpp
-  test/idevice_test.cpp
-  test/instrument_test.cpp
-  test/dtxprimitivearray_test.cpp
-  test/dtxmessageparser_test.cpp
-  test/dtxmessagetransmitter_test.cpp
+  test/common/blockingqueue_test.cpp
+  test/common/bytebuffer_test.cpp
+  test/common/idevice_test.cpp
+  test/instrument/dtxprimitivearray_test.cpp
+  test/instrument/dtxmessageparser_test.cpp
+  test/instrument/dtxmessagetransmitter_test.cpp
 )
 target_link_libraries(
   ${PROJECT_NAME}_test

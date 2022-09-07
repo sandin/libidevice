@@ -3,10 +3,10 @@
 #include <string>
 #include <thread>
 
-#include "idevice/dtxchannel.h"
-#include "idevice/dtxconnection.h"
-#include "idevice/dtxtransport.h"
-#include "idevice/kperf.h"
+#include "idevice/instrument/dtxchannel.h"
+#include "idevice/instrument/dtxconnection.h"
+#include "idevice/instrument/dtxtransport.h"
+#include "idevice/instrument/kperf.h"
 #include "libimobiledevice/libimobiledevice.h"
 #include "nskeyedarchiver/scope.hpp"
 #include "nskeyedarchiver/kavalue.hpp"

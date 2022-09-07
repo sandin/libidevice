@@ -9,7 +9,7 @@
 #include <utility>  // std::pair
 #include <vector>
 
-#include "idevice/dtxmessageparser.h"
+#include "idevice/instrument/dtxmessageparser.h"
 #include "nskeyedarchiver/nskeyedunarchiver.hpp"
 
 using namespace idevice;
