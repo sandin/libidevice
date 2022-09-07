@@ -14,7 +14,19 @@ class IService {
 
   virtual ~IService() {}
 
+  /**
+   * Connect to the server
+   * 
+   * @param device the target device
+   * @return Result result code
+   */
   virtual Result Connect(idevice_t device) = 0;
+
+  /**
+   * Disconnect from the server 
+   * 
+   * @return Result result code
+   */
   virtual Result Disconnect() = 0;
 };
 

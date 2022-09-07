@@ -9,6 +9,9 @@
 
 namespace idevice {
 
+/**
+ * A Buffer Memory 
+ */
 class BufferMemory {
  public:
   BufferMemory() {}
@@ -20,6 +23,12 @@ class BufferMemory {
 
   IDEVICE_DISALLOW_COPY_AND_ASSIGN(BufferMemory);
 
+  /**
+   * Allocate a new buffer
+   * 
+   * @param req_size size of the buffer
+   * @return char* the buffer
+   */
   char* Allocate(size_t req_size) {
     if (capacity_ - size_ < req_size) {
       if (!Reserve(size_ + req_size)) {
@@ -33,9 +42,26 @@ class BufferMemory {
     return ptr;
   }
 
+  /**
+   * Get the pointer of the buffer with a offset
+   * 
+   * @param offset offset
+   * @return char* the buffer
+   */
   char* GetPtr(size_t offset) { return buffer_ + offset; }
 
+  /**
+   * Get the current size of the buffer 
+   * 
+   * @return size_t size of the buffer
+   */
   size_t Size() const { return size_; }
+
+  /**
+   * Set the current size of the buffer
+   * 
+   * @param size 
+   */
   void SetSize(size_t size) { size_ = size; }
 
  private:

@@ -1,0 +1,32 @@
+digraph {
+    node [shape=box, fontname="Inconsolata, Consolas", fontsize=10, penwidth=0.5]
+
+
+    IService, InstrumentService
+    IDTXTransport, DTXTransport, BufferedDTXTransport, DebugProxyTransport
+    DTXPrimitiveArray, DTXPrimitiveValue
+    DTXMessenger, DTXConnection, DTXChannel
+    DTXMessageTransmitter
+    DTXMessageParser
+    DTXMessage, DTXMessageHeader, DTXMessageRoutingInfo
+    
+    /* inheritance */
+    {
+        edge [arrowtail=onormal, dir=back]
+
+        IService -> { InstrumentService }
+        IDTXTransport -> { DTXTransport, BufferedDTXTransport, DebugProxyTransport }
+        DTXMessenger -> { DTXConnection, DTXChannel }
+    }
+    
+    /* Composition */
+    {
+        edge [dir=back, arrowtail=diamond, headlabel=""]
+        
+        DTXConnection -> { IDTXTransport, DTXMessageTransmitter, DTXMessageParser }
+        DTXPrimitiveArray -> { DTXPrimitiveValue }
+        DTXMessage -> { DTXMessageHeader, DTXMessageRoutingInfo, DTXPrimitiveArray }
+        DTXTransport -> { InstrumentService }
+        DTXMessageParser -> { DTXMessage }
+    }
+}

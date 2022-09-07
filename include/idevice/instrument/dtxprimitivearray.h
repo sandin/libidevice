@@ -14,6 +14,9 @@
 
 namespace idevice {
 
+/**
+ * DTXPrimitiveValue 
+ */
 class DTXPrimitiveValue {
  public:
   // we map each DTXPrimitiveType to the STL type

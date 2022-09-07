@@ -17,31 +17,91 @@
 
 namespace idevice {
 
+/**
+ * The connection for communication with instrument service using DTXMessage protocol.
+ */
 class DTXConnection : public DTXMessenger {
  public:
   using ChannelIdentifier = uint32_t;
   using MessageIdentifier = uint32_t;
   using ReplyIdentifier = uint64_t;  // ChannelIdentifier << 32 || MessageIdentifier
   using DTXMessageWithRoutingInfo = std::pair<std::shared_ptr<DTXMessage>, DTXMessageRoutingInfo>;
-
+ 
+  /**
+   * Constructor
+   * 
+   * @param transport A transport
+   */
   DTXConnection(IDTXTransport* transport) : transport_(transport) {}
+
+  /**
+   * Destructor
+   */
   virtual ~DTXConnection() {
     // IDEVICE_ASSERT(!IsConnected());
   }
 
+  /**
+   * Connect to the service 
+   * 
+   * @return succeed or fail 
+   */
   bool Connect();
+
+  /**
+   * Disconnect from the service
+   * 
+   * @return succeed or fail  
+   */
   bool Disconnect();
+
+  /**
+   * Check whether it's connected or not
+   * 
+   * @return connected or not 
+   */
   bool IsConnected() const { return transport_->IsConnected(); }
 
+  /**
+   * Request service to open a new channel
+   * 
+   * @param channel_identifier channel code to identify the channel
+   * @return std::shared_ptr<DTXChannel> the channel that was just created
+   */
   std::shared_ptr<DTXChannel> MakeChannelWithIdentifier(const std::string& channel_identifier);
+  
+  /**
+   * Close a channel 
+   * 
+   * @param channel the channel to be closed
+   * @return succeed or fail 
+   */
   virtual bool CancelChannel(const DTXChannel& channel) override;
 
+  /**
+   * Send message synchronously
+   *
+   * @param msg message to be sent
+   * @param timeout_ms timeout in milliseconds
+   * @return std::shared_ptr<DTXMessage> the response message
+   */
   virtual std::shared_ptr<DTXMessage> SendMessageSync(std::shared_ptr<DTXMessage> msg,
                                                       uint32_t timeout_ms = -1) override;
+
+  /**
+   * Send message asynchronously
+   *
+   * @param msg message to be sent
+   * @param callback callback for response message
+   */
   virtual void SendMessageAsync(std::shared_ptr<DTXMessage> msg,
                                 ReplyHandler callback) override;
 
-  void DumpStat() const;  // ONLY FOR DEBUG
+  /**
+   * Dump all stat of this connection 
+   * Used for debugging
+   */
+  void DumpStat() const; 
 
  private:
   struct Packet {
