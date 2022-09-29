@@ -76,24 +76,24 @@
 // DTXMESSAGE
 #define IDEVICE_DUMP_DTXMESSAGE_HEADER(header) \
   printf("==============\n"); \
-  printf("magic: %x\n", header.magic); \
-  printf("message_header_size: %d\n", header.message_header_size); \
-  printf("fragment_index: %d\n", header.fragment_index); \
-  printf("fragment_count: %d\n", header.fragment_count); \
-  printf("length: %d\n", header.length); \
-  printf("identifier: %d\n", header.identifier); \
-  printf("conversation_index: %d\n", header.conversation_index); \
-  printf("channel_code: %d\n", header.channel_code); \
-  printf("expects_reply: %d\n", header.expects_reply); \
+  printf("magic: %x\n", (header).magic); \
+  printf("message_header_size: %d\n", (header).message_header_size); \
+  printf("fragment_index: %d\n", (header).fragment_index); \
+  printf("fragment_count: %d\n", (header).fragment_count); \
+  printf("length: %d\n", (header).length); \
+  printf("identifier: %d\n", (header).identifier); \
+  printf("conversation_index: %d\n", (header).conversation_index); \
+  printf("channel_code: %d\n", (header).channel_code); \
+  printf("expects_reply: %d\n", (header).expects_reply); \
   printf("==============\n"); \
 
 #define IDEVICE_DTXMESSAGE_IDENTIFIER(channel_code, msg_identifier) static_cast<uint64_t>(channel_code) << 32 | msg_identifier
 
 #define IDEVICE_SETUP_DTXMESSAGE_WITH_HREADER(message, header) \
-  message->SetIdentifier(header.identifier); \
-  message->SetConversationIndex(header.conversation_index); \
-  message->SetChannelCode(header.channel_code); \
-  message->SetExpectsReply(header.expects_reply != 0); \
+  message->SetIdentifier((header).identifier); \
+  message->SetConversationIndex((header).conversation_index); \
+  message->SetChannelCode((header).channel_code); \
+  message->SetExpectsReply((header).expects_reply != 0); \
 
 #endif // IDEVICE_COMMON_MACRO_DEF_H
 // clang-format on

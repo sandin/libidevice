@@ -52,7 +52,7 @@ class DTXMessageParser {
 
  private:
   // const char* Read(ByteReader& reader, size_t size, size_t* actual_size);
-  size_t ParseMessageWithHeader(const DTXMessageHeader& header, const char* data, size_t size);
+  size_t ParseMessageWithHeader(const DTXMessageHeader* header, const char* data, size_t size);
 
   bool eof_ = false;
   BufferMemory parsing_buffer_;

@@ -23,7 +23,8 @@ digraph {
     {
         edge [dir=back, arrowtail=diamond, headlabel=""]
         
-        DTXConnection -> { IDTXTransport, DTXMessageTransmitter, DTXMessageParser }
+        DTXConnection -> { DTXMessageTransmitter, DTXMessageParser }
+        DTXMessageTransmitter -> { IDTXTransport }
         DTXPrimitiveArray -> { DTXPrimitiveValue }
         DTXMessage -> { DTXMessageHeader, DTXMessageRoutingInfo, DTXPrimitiveArray }
         DTXTransport -> { InstrumentService }
