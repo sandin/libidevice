@@ -320,7 +320,37 @@ output:
 }
 ```
 
-​                                  
+​         
+
+#### get_value
+
+Get Developer mode status:
+
+```bash
+$ idevice get_value com.apple.security.mac.amfi DeveloperModeStatus
+```
+
+output:
+
+```json
+DeveloperModeStatus: 1
+```
+
+​           
+
+#### set_developer_mode
+
+```bash
+$ idevice set_developer_mode 0
+```
+
+mode:
+
+* 0: reveal toggle in settings
+* 1: enable developer mode (only if no passcode is set)
+* 2: answers developer mode enable prompt post-restart?
+
+​                                   
 
 #### decode
 

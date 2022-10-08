@@ -39,6 +39,8 @@ set(HEADERS
     include/idevice/utils/bytebuffer.h
 
     include/idevice/service/iservice.h
+    include/idevice/service/lockdownservice.h
+    include/idevice/service/amfiservice.h
 
     include/idevice/instrument/instrument.h
     include/idevice/instrument/dtxmessenger.h
@@ -61,6 +63,9 @@ set(SOURCES
     src/instrument/dtxtransport.cpp
     src/instrument/dtxprimitivearray.cpp
     src/instrument/kperf.cpp
+
+    src/service/lockdownservice.cpp
+    src/service/amfiservice.cpp
 )
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries(
@@ -110,6 +115,10 @@ add_executable(
   tools/decoder.cpp
   tools/instruments.hpp
   tools/instruments.cpp
+  tools/lockdown.hpp
+  tools/lockdown.cpp
+  tools/amfi.hpp
+  tools/amfi.cpp
   tools/main.cpp
 )
 target_link_libraries(

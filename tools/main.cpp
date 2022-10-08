@@ -1,6 +1,8 @@
+#include "amfi.hpp"
 #include "argparser.hpp"
 #include "decoder.hpp"
 #include "instruments.hpp"
+#include "lockdown.hpp"
 
 using namespace idevice::tools;
 
@@ -26,6 +28,10 @@ int main(int argc, char* argv[]) {
     return decoder_main(args);
   } else if (command == "instruments") {
     return instruments_main(args);
+  } else if (command == "get_value") {
+    return lockdown_get_value(args);
+  } else if (command == "set_developer_mode") {
+    return amfi_set_developer_mode(args);
   } else {
     printf("unknown command: %s\n", command.c_str());
   }
