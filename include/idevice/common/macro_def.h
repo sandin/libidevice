@@ -9,6 +9,8 @@
 #ifndef IDEVICE_COMMON_MACRO_DEF_H
 #define IDEVICE_COMMON_MACRO_DEF_H
 
+#include <assert.h>
+
 // DEBUG 
 #ifdef NDEBUG
 #define IDEVICE_DEBUG 0

@@ -220,7 +220,7 @@ class BufferedDTXTransport {
    */
   bool Flush() {
     if (buffer_used_ == 0) {
-      return;  // nothing to do
+      return true;  // nothing to do
     }
     uint32_t actual_size = 0;
     bool ret = transport_->Send(buffer_, buffer_used_, &actual_size);
