@@ -67,9 +67,10 @@ set(SOURCES
     src/service/lockdownservice.cpp
     src/service/amfiservice.cpp
 )
-add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
+add_library(${PROJECT_NAME} STATIC ${HEADERS} ${SOURCES})
 target_link_libraries(
   ${PROJECT_NAME}
+  PUBLIC
   nskeyedarchiver
   PkgConfig::imobiledevice
   PkgConfig::usbmuxd 
