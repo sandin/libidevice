@@ -1,5 +1,7 @@
 #include "argparser.hpp"
 
+#include <cstring> // strlen
+
 using namespace idevice::tools;
 
 idevice::tools::Args idevice::tools::parse_args(int argc, char* argv[]) {

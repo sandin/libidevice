@@ -68,6 +68,7 @@ bool DTXConnection::CancelChannel(const DTXChannel& channel) {
 #endif
   
   channels_by_code_.erase(channel.ChannelIdentifier());
+  return true;
 }
 
 void DTXConnection::DumpStat() const {

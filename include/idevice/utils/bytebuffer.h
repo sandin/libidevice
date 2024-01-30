@@ -2,6 +2,7 @@
 #define IDEVICE_UTILS_BYTE_BUFFER_H
 
 #include <cstdint>
+#include <cstdio>  // printf
 #include <memory>  // std::unique_ptr
 #include <vector>
 

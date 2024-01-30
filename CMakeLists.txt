@@ -3,6 +3,7 @@ project(libidevice VERSION 0.1.0)
 
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 
 include(FetchContent)
 FetchContent_Declare(

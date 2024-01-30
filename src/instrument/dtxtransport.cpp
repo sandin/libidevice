@@ -14,6 +14,7 @@ bool DTXTransport::Disconnect() {
   if (IsConnected()) {
     instrument_service_->Disconnect();
   }
+  return true;
 }
 
 bool DTXTransport::IsConnected() const { return instrument_service_->IsConnected(); }

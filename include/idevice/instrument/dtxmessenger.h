@@ -2,6 +2,7 @@
 #define IDEVICE_INSTRUMENT_DTXMESSENGER_H
 
 #include <functional>
+#include <memory>  // std::shared_ptr
 
 namespace idevice {
 
