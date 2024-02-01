@@ -48,9 +48,9 @@ TEST(idevice, Test) {
 
 #ifdef DEBUG_DTXTRANSPORT
   IDTXTransport* transport = new DebugProxyTransport(
-      new DTXTransport(device), "idevice_transmit_outfile.bin", "idevice_received_outfile.bin");
+      new DTXTransport(device, false), "idevice_transmit_outfile.bin", "idevice_received_outfile.bin");
 #else
-  IDTXTransport* transport = new DTXTransport(device);
+  IDTXTransport* transport = new DTXTransport(device, false);
 #endif
   defer(transport, delete transport);
 

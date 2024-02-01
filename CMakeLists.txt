@@ -127,6 +127,13 @@ target_link_libraries(
   idevice
   ${PROJECT_NAME}
 )
+if(MINGW) 
+  target_link_libraries(
+    idevice
+    Ws2_32   # windows only, for getaddrinfo
+  )
+endif()
+
 
 # asan
 #target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -fno-omit-frame-pointer)

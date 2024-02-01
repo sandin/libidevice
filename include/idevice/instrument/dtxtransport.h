@@ -83,8 +83,8 @@ class DTXTransport : public IDTXTransport {
    * 
    * @param device the target of transport
    */
-  DTXTransport(idevice_t device) : device_(device) {
-    instrument_service_ = new InstrumentService();
+  DTXTransport(idevice_t device, bool rsd) : device_(device) {
+    instrument_service_ = new InstrumentService(rsd);
   }
 
   /**

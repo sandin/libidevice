@@ -8,8 +8,9 @@
 using namespace idevice;
 
 constexpr char kInstrumentServiceName[] = "com.apple.instruments.remoteserver";
-constexpr char kInstrumentSecureServiceName[] =
+constexpr char kInstrumentSecureServiceNameOld[] =
     "com.apple.instruments.remoteserver.DVTSecureSocketProxy";
+constexpr char kInstrumentSecureServiceName[] = "com.apple.instruments.dtservicehub";
 
 IService::Result InstrumentService::NewClient(idevice_t device,
                                               lockdownd_service_descriptor_t service,
@@ -35,12 +36,14 @@ IService::Result InstrumentService::Connect(idevice_t device) {
   device_ = device;
   int32_t err = 0;
 
+  const char* service_name = rsd_ ? kInstrumentSecureServiceName : kInstrumentSecureServiceNameOld;
+
   // with ssl
   service_error_t ret = service_client_factory_start_service(
-      device_, kInstrumentSecureServiceName, (void**)&client_, kClientLabel,
+      device_, service_name, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
   IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n",
-                kInstrumentSecureServiceName, ret);
+                service_name, ret);
   if (ret == kResultOk) {
     return ResultCode::kOk;
   }
@@ -50,7 +53,7 @@ IService::Result InstrumentService::Connect(idevice_t device) {
       device_, kInstrumentServiceName, (void**)&client_, kClientLabel,
       SERVICE_CONSTRUCTOR(InstrumentService::NewClient), &err);
   IDEVICE_LOG_D("service_client_factory_start_service, name=%s, ret=%d\n",
-                kInstrumentSecureServiceName, ret);
+                kInstrumentServiceName, ret);
   return ret;
 }
 

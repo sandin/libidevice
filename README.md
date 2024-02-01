@@ -33,7 +33,7 @@ $ cmake ..
 ```c++
 idevice_t device = ...;
 
-DTXTransport* transport = new DTXTransport(device);
+DTXTransport* transport = new DTXTransport(device, false);
 DTXConnection* connection = new DTXConnection(transport);
 connection->Connect();
 

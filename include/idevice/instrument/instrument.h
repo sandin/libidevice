@@ -30,7 +30,9 @@ class InstrumentService : public IService {
   /**
    * Constructor
    */
-  InstrumentService() {}
+  InstrumentService(bool rsd) {
+    rsd_ = rsd;
+  }
 
   /**
    * Destructor
@@ -96,6 +98,7 @@ class InstrumentService : public IService {
 
   idevice_t device_ = nullptr;
   InstrumentClient client_ = nullptr;
+  bool rsd_ = false;
 };  // class InstrumentService
 
 }  // namespace idevice

@@ -15,6 +15,7 @@ using Args = std::pair<std::vector<std::string>, std::unordered_map<std::string,
 Args parse_args(int argc, char* argv[]);
 bool is_flag_set(const Args& args, const std::string& key);
 int get_flag_as_int(const Args& args, const std::string& key, int def_val);
+std::string get_flag_as_str(const Args& args, const std::string& key, const std::string& def_val);
 
 } // namespace tools
 } // namespace idevice

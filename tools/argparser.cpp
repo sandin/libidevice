@@ -41,3 +41,14 @@ int idevice::tools::get_flag_as_int(const Args& args, const std::string& key, in
   }
   return def_val;
 }
+
+std::string idevice::tools::get_flag_as_str(const Args& args, const std::string& key, const std::string& def_val) {
+  auto found = args.second.find(key);
+  if (found != args.second.end()) {
+    if (!found->second.empty()) {
+      return found->second;
+    }
+  }
+  return def_val;
+}
+

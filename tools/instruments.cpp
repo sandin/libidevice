@@ -3,6 +3,16 @@
 #include <string>
 #include <thread>
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#endif
+
 #include "idevice/instrument/dtxchannel.h"
 #include "idevice/instrument/dtxconnection.h"
 #include "idevice/instrument/dtxtransport.h"
@@ -22,6 +32,15 @@ using namespace idevice;
 #define NSSet(...) nskeyedarchiver::KAArray("NSSet", {"NSSet", "NSObject"}, ##__VA_ARGS__)
 #define NSValue(s) nskeyedarchiver::KAValue(s)
 
+// TODO: delete it
+struct idevice_private {
+	char *udid;
+	uint32_t mux_id;
+	enum idevice_connection_type conn_type;
+	void *conn_data;
+	int version;
+	int device_class;
+};
 
 int running_processes(DTXConnection* connection) {
   printf("runningProcesses:\n");
@@ -233,6 +252,8 @@ int energy(DTXConnection* connection, uint64_t pid) {
 }
 
 int idevice::tools::instruments_main(const idevice::tools::Args& args) {
+  idevice_set_debug_level(1);
+
   char** devices;
   int count = 0;
   int ret = idevice_get_device_list(&devices, &count);
@@ -255,7 +276,22 @@ int idevice::tools::instruments_main(const idevice::tools::Args& args) {
   }
   defer(device, idevice_free(device));
 
-  IDTXTransport* transport = new DTXTransport(device);
+  // RSD for iOS 17
+  std::string host = get_flag_as_str(args, "host", ""); // RSD handshake address
+  int port = get_flag_as_int(args, "port", 0);          // RSD com.apple.mobile.lockdown.remote.trusted port 
+  bool rsd = !host.empty() && port != 0;
+  if (rsd) {
+    struct sockaddr_in6* addr = (struct sockaddr_in6*)(malloc(sizeof(sockaddr_in6)));
+    memset(addr, 0, sizeof(addr));
+    addr->sin6_family = AF_INET6;
+    addr->sin6_port = htons(port);
+    inet_pton(AF_INET6, host.c_str(), &addr->sin6_addr); 
+
+    device->conn_data = addr; 
+    device->conn_type = CONNECTION_NETWORK;
+  }
+
+  IDTXTransport* transport = new DTXTransport(device, rsd);
   defer(transport, delete transport);
 
   DTXConnection* connection = new DTXConnection(transport);
